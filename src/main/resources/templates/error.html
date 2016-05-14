@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/web/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity4"
+      layout:decorator="layout">
+<head>
+  <title th:text="#{eduproxy.error}"></title>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <section class="error">
+    <h3 th:text="#{eduproxy.error}"></h3>
+    <p th:text="#{eduproxy.error_message}"></p>
+    <div th:if="${errorAttributes != null}">
+      You are seeing the details of the error because of DEV modus
+    </div>
+    <dl class="errorAttributes" th:each="error: ${errorAttributes}">
+      <dt th:text="${error.key}">key</dt>
+      <dd th:text="${error.value}">value</dd>
+    </dl>
+  </section>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,127 @@
+<saml2p:Response xmlns:saml2p="urn:oasis:names:tc:SAML:2.0:protocol"
+                 Destination="http://localhost:8080/saml/SSO"
+                 ID="52898723-ccc6-44ae-82ca-52e363930717"
+                 InResponseTo="a20b0jh77hh0a0j717ejaib63j72ga3"
+                 IssueInstant="2016-05-04T13:31:27.573Z"
+                 Version="2.0"
+>
+  <saml2:Issuer xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion"
+                Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity"
+  >http://mock-idp
+  </saml2:Issuer>
+  <saml2p:Status>
+    <saml2p:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success"/>
+  </saml2p:Status>
+  <saml2:Assertion xmlns:saml2="urn:oasis:names:tc:SAML:2.0:assertion"
+                   ID="48c965dc-1dea-42f6-a1cb-abbe7646142a"
+                   IssueInstant="2016-05-04T13:31:27.559Z"
+                   Version="2.0"
+                   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+  >
+    <saml2:Issuer Format="urn:oasis:names:tc:SAML:2.0:nameid-format:entity">http://mock-idp</saml2:Issuer>
+    <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+      <ds:SignedInfo>
+        <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+        <ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+        <ds:Reference URI="#48c965dc-1dea-42f6-a1cb-abbe7646142a">
+          <ds:Transforms>
+            <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+            <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#">
+              <ec:InclusiveNamespaces xmlns:ec="http://www.w3.org/2001/10/xml-exc-c14n#"
+                                      PrefixList="xs"
+              />
+            </ds:Transform>
+          </ds:Transforms>
+          <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+          <ds:DigestValue>wAlqJFL0AcgSaGoMeUwZyh5My8U=</ds:DigestValue>
+        </ds:Reference>
+      </ds:SignedInfo>
+      <ds:SignatureValue>
+        oxLakQCEe0znXG5SH7jimRSV2pe8EWFeZurLq+gs51i4kFJd/mw0SB/WxaNTF7qU/NKdd5SurrmyxBuUF1JuG7xx4lML4PhFU6zefm68BvbazlWQdFKb+tk7A4wDcv9fqWzc+g0cBaoRsBAgg01a9T+RBIgJRBqg4wXP2w02WeM=
+      </ds:SignatureValue>
+    </ds:Signature>
+    <saml2:Subject>
+      <saml2:NameID Format="urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified">qwerty</saml2:NameID>
+      <saml2:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+        <saml2:SubjectConfirmationData Address="145.100.191.122"
+                                       InResponseTo="a20b0jh77hh0a0j717ejaib63j72ga3"
+                                       NotOnOrAfter="2016-05-04T13:32:57.557Z"
+                                       Recipient="http://localhost:8080/saml/SSO"
+        />
+      </saml2:SubjectConfirmation>
+    </saml2:Subject>
+    <saml2:Conditions>
+      <saml2:AudienceRestriction>
+        <saml2:Audience>http://attribute-mapper.test.surfconext.nl</saml2:Audience>
+      </saml2:AudienceRestriction>
+    </saml2:Conditions>
+    <saml2:AuthnStatement AuthnInstant="2016-05-04T13:31:27.523Z">
+      <saml2:AuthnContext>
+        <saml2:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml2:AuthnContextClassRef>
+        <saml2:AuthenticatingAuthority>http://mock-idp</saml2:AuthenticatingAuthority>
+      </saml2:AuthnContext>
+    </saml2:AuthnStatement>
+    <saml2:AttributeStatement>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:uid">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >qwerty
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:oid:1.3.6.1.4.1.1076.20.100.10.10.1">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >guest
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:sn">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >Doe
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:mail">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >j.doe@example.com
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:eduPersonPrincipalName">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >j.doe@example.com
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:displayName">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >qwerty
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:givenName">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >John
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:eduPersonAffiliation">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >hero
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:terena.org:attribute-def:schacHomeOrganization">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >example.com
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+      <saml2:Attribute Name="urn:mace:dir:attribute-def:cn">
+        <saml2:AttributeValue xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                              xsi:type="xs:string"
+        >John Doe
+        </saml2:AttributeValue>
+      </saml2:Attribute>
+    </saml2:AttributeStatement>
+  </saml2:Assertion>
+</saml2p:Response>
