@@ -43,7 +43,7 @@
     </saml:Subject>
     <saml:Conditions NotBefore="2016-05-13T14:35:10Z" NotOnOrAfter="2016-05-13T14:40:11Z">
       <saml:AudienceRestriction>
-        <saml:Audience>https://attribute-mapper.localhost.surfconext.nl</saml:Audience>
+        <saml:Audience>https://eduproxy.localhost.surfconext.nl</saml:Audience>
       </saml:AudienceRestriction>
     </saml:Conditions>
     <saml:AuthnStatement AuthnInstant="2016-05-13T14:35:10Z">
