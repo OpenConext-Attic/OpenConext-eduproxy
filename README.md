@@ -1,4 +1,4 @@
-# OpenConext-saml-proxy
+# OpenConext-eduproxy
 
 [![Build Status](https://travis-ci.org/OpenConext/OpenConext-eduproxy.svg)](https://travis-ci.org/OpenConext/OpenConext-eduproxy)
 [![codecov.io](https://codecov.io/gh/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/gh/OpenConext/OpenConext-eduproxy)

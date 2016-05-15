@@ -142,7 +142,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterBefore(metadataGeneratorFilter(), ChannelProcessingFilter.class)
       .addFilterAfter(samlFilter(), BasicAuthenticationFilter.class)
       .authorizeRequests()
-      .antMatchers("/saml/idp/**", "/saml/metadata/**", "/saml/SSO/**").permitAll()
+      .antMatchers("/saml/idp/**", "/saml/metadata/**", "/saml/SSO/**", "/idp/metadata").permitAll()
       .anyRequest().hasRole("USER")
       .and()
       .logout()
