@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/OpenConext/OpenConext-eduproxy.svg)](https://travis-ci.org/OpenConext/OpenConext-eduproxy)
 [![codecov.io](https://codecov.io/gh/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/gh/OpenConext/OpenConext-eduproxy)
 
-EDUProxy is a SAML Proxy acting as a SAML Identity Provider for all eduGain Service Providers and
-as an ServiceProvider for the OpenConext Identity Provider. The Proxy behaviour can be configured in order
+EDUProxy is a SAML Proxy acting as a Identity Provider for all eduGain Service Providers and
+as a ServiceProvider for the OpenConext Identity Provider. The Proxy behaviour can be configured in order
 for the EDUProxy to be used as a generic IdP-SP SAML proxy with hooks for authnResponse 'enrichment'.
 
 ## [Getting started](#getting-started)
