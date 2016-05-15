@@ -13,14 +13,13 @@ import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.CriteriaSet;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.credential.Credential;
-import org.opensaml.xml.security.credential.CredentialResolver;
 import org.opensaml.xml.security.credential.UsageType;
 import org.opensaml.xml.security.criteria.EntityIDCriteria;
 import org.opensaml.xml.security.criteria.UsageCriteria;
 import org.opensaml.xml.signature.SignatureException;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.saml.key.KeyManager;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,10 +28,10 @@ import static eduproxy.saml.SAMLBuilder.*;
 
 public class SAMLRequestUtils {
 
-  private final CredentialResolver credentialResolver;
+  private final KeyManager keyManager;
 
-  public SAMLRequestUtils(CredentialResolver credentialResolver) {
-    this.credentialResolver = credentialResolver;
+  public SAMLRequestUtils(KeyManager keyManager) {
+    this.keyManager = keyManager;
   }
 
   /*
@@ -71,7 +70,7 @@ public class SAMLRequestUtils {
     criteriaSet.add(new EntityIDCriteria(entityName));
     criteriaSet.add(new UsageCriteria(UsageType.SIGNING));
 
-    Credential signingCredential = credentialResolver.resolveSingle(criteriaSet);
+    Credential signingCredential = keyManager.resolveSingle(criteriaSet);
 
     messageContext.setOutboundSAMLMessageSigningCredential(signingCredential);
 

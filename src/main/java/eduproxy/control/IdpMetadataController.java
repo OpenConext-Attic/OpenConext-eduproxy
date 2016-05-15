@@ -12,7 +12,6 @@ import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.CriteriaSet;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.credential.Credential;
-import org.opensaml.xml.security.credential.CredentialResolver;
 import org.opensaml.xml.security.credential.UsageType;
 import org.opensaml.xml.security.criteria.EntityIDCriteria;
 import org.opensaml.xml.security.keyinfo.KeyInfoGenerator;
@@ -24,7 +23,7 @@ import org.opensaml.xml.signature.Signer;
 import org.opensaml.xml.util.XMLHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Controller;
+import org.springframework.security.saml.key.KeyManager;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
@@ -43,7 +42,7 @@ public class IdpMetadataController {
   private DateTime validUntil;
 
   @Autowired
-  private CredentialResolver credentialResolver;
+  private KeyManager keyManager;
 
   @Value("${proxy.entity_id}")
   private String entityId;
@@ -66,7 +65,7 @@ public class IdpMetadataController {
 
     Signature signature = buildSAMLObject(Signature.class, Signature.DEFAULT_ELEMENT_NAME);
 
-    Credential credential = credentialResolver.resolveSingle(new CriteriaSet(new EntityIDCriteria(entityId)));
+    Credential credential = keyManager.resolveSingle(new CriteriaSet(new EntityIDCriteria(entityId)));
     signature.setSigningCredential(credential);
     signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1);
     signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);

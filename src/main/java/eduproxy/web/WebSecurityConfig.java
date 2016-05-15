@@ -17,7 +17,6 @@ import org.opensaml.util.storage.ReplayCache;
 import org.opensaml.ws.security.SecurityPolicyResolver;
 import org.opensaml.ws.security.provider.BasicSecurityPolicy;
 import org.opensaml.ws.security.provider.StaticSecurityPolicyResolver;
-import org.opensaml.xml.parse.BasicParserPool;
 import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +24,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
@@ -51,7 +49,6 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
-import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -60,6 +57,7 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import javax.servlet.Filter;
+import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -101,6 +99,12 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Value("${proxy.passphrase}")
   private String serviceProviderPassphrase;
+
+  @Value("${edugain.feed}")
+  private String edugainFeedUrl;
+
+  private DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader();
+
 
   @Bean
   public SAMLAuthenticationProvider samlAuthenticationProvider() {
@@ -161,9 +165,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public AuthenticationSuccessHandler successRedirectHandler() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-    ProxyAuthenticationSuccessHandler successHandler = new ProxyAuthenticationSuccessHandler(samlMessageHandler());
-    return successHandler;
+  public AuthenticationSuccessHandler successRedirectHandler() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, XMLStreamException {
+    return new ProxyAuthenticationSuccessHandler(samlMessageHandler());
   }
 
   @Bean
@@ -186,7 +189,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Bean
   @Autowired
-  public MetadataGeneratorFilter metadataGeneratorFilter() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+  public MetadataGeneratorFilter metadataGeneratorFilter() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, XMLStreamException {
     return new MetadataGeneratorFilter(metadataGenerator());
   }
 
@@ -201,7 +204,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public IdentityProviderAuthnFilter identityProviderAuthnFilter() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
+  public IdentityProviderAuthnFilter identityProviderAuthnFilter() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException {
     return new IdentityProviderAuthnFilter(samlMessageHandler());
   }
 
@@ -219,7 +222,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Bean
   public MetadataProvider identityProvider() throws MetadataProviderException {
-    Resource resource = new DefaultResourceLoader().getResource(identityProviderMetadataUrl);
+    Resource resource = defaultResourceLoader.getResource(identityProviderMetadataUrl);
     ResourceMetadataProvider resourceMetadataProvider = new ResourceMetadataProvider(resource);
     resourceMetadataProvider.setParserPool(parserPool());
     ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(resourceMetadataProvider, extendedMetadata());
@@ -303,7 +306,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public MetadataGenerator metadataGenerator() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
+  public MetadataGenerator metadataGenerator() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException {
     MetadataGenerator metadataGenerator = new MetadataGenerator();
     metadataGenerator.setEntityId(serviceProviderEntityId);
     metadataGenerator.setEntityBaseURL(serviceProviderBaseUrl);
@@ -317,13 +320,21 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public KeyManager keyManager() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+  public KeyManager keyManager() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, XMLStreamException {
     KeyStoreLocator keyStoreLocator = new KeyStoreLocator();
     KeyStore keyStore = keyStoreLocator.createKeyStore(serviceProviderPassphrase);
 
     keyStoreLocator.addPrivateKey(keyStore, serviceProviderEntityId, serviceProviderPrivateKey, serviceProviderCertificate, serviceProviderPassphrase);
     keyStoreLocator.addCertificate(keyStore, identityProviderEntityId, serviceProviderCertificate);
 
+    Map<String, String> serviceProviders = new EduGainFeedParser(defaultResourceLoader.getResource(edugainFeedUrl)).parse();
+    serviceProviders.entrySet().forEach(sp -> {
+      try {
+        keyStoreLocator.addCertificate(keyStore, sp.getKey(), sp.getValue());
+      } catch (CertificateException | KeyStoreException e) {
+        throw new RuntimeException(e);
+      }
+    });
     return new JKSKeyManager(keyStore, Collections.singletonMap(serviceProviderEntityId, serviceProviderPassphrase), serviceProviderEntityId);
   }
 
@@ -402,10 +413,10 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public SAMLMessageHandler samlMessageHandler() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
+  public SAMLMessageHandler samlMessageHandler() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException {
     return new SAMLMessageHandler(
       keyManager(),
-      new HTTPRedirectDeflateDecoder(new BasicParserPool()),
+      new HTTPRedirectDeflateDecoder(parserPool()),
       new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
       securityPolicyResolver(),
       serviceProviderEntityId);

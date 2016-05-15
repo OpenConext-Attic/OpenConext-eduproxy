@@ -1,15 +1,10 @@
 package eduproxy;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.tomakehurst.wiremock.junit.WireMockRule;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
-import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.xml.ConfigurationException;
-import org.opensaml.xml.security.credential.CredentialResolver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.SpringApplicationConfiguration;
@@ -17,25 +12,20 @@ import org.springframework.boot.test.TestRestTemplate;
 import org.springframework.boot.test.WebIntegrationTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.saml.key.KeyManager;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Arrays.asList;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @SpringApplicationConfiguration(classes = Application.class)
@@ -51,12 +41,9 @@ public abstract class AbstractIntegrationTest {
   protected String entityId;
 
   @Autowired
-  private CredentialResolver credentialResolver;
+  private KeyManager keyManager;
 
   protected SAMLRequestUtils samlRequestUtils;
-
-  @Rule
-  public WireMockRule bioMetricMock = new WireMockRule(9000);
 
   @BeforeClass
   public static void beforeClass() throws ConfigurationException {
@@ -65,7 +52,7 @@ public abstract class AbstractIntegrationTest {
 
   @Before
   public void before() throws IOException {
-    samlRequestUtils = new SAMLRequestUtils(credentialResolver);
+    samlRequestUtils = new SAMLRequestUtils(keyManager);
   }
 
   protected HttpHeaders buildCookieHeaders(ResponseEntity<?> response) {

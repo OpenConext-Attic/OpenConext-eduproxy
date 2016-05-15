@@ -27,7 +27,6 @@ import org.opensaml.xml.signature.*;
 import org.opensaml.xml.util.Base64;
 import org.opensaml.xml.validation.ValidationException;
 import org.opensaml.xml.validation.ValidatorSuite;
-import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.saml.key.KeyManager;
 
 import javax.servlet.http.HttpServletRequest;
@@ -100,6 +99,7 @@ public class SAMLMessageHandler {
     doSendAuthnResponse(authenticationException.getPrincipal(), response, buildStatus(StatusCode.RESPONDER_URI, StatusCode.AUTHN_FAILED_URI, authenticationException.getMessage()));
   }
 
+  @SuppressWarnings("unchecked")
   private void doSendAuthnResponse(SAMLPrincipal principal, HttpServletResponse response, Status status) throws MarshallingException, SignatureException, MessageEncodingException {
     Credential signingCredential = resolveCredential(entityId);
 
