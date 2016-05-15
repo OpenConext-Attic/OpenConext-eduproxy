@@ -3,7 +3,9 @@
 [![Build Status](https://travis-ci.org/OpenConext/OpenConext-eduproxy.svg)](https://travis-ci.org/OpenConext/OpenConext-eduproxy)
 [![codecov.io](https://codecov.io/gh/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/gh/OpenConext/OpenConext-eduproxy)
 
-EDUProxy is a SAML Proxy acting as a SAML SAML Identity Provider and Service Provider.
+EDUProxy is a SAML Proxy acting as a SAML Identity Provider for all eduGain Service Providers and
+as an ServiceProvider for the OpenConext Identity Provider. The Proxy behaviour can be configured in order
+for the EDUProxy to be used as a generic IdP-SP SAML proxy with hooks for authnResponse 'enrichment'.
 
 ## [Getting started](#getting-started)
 
@@ -26,7 +28,7 @@ When developing, it's convenient to just execute the applications main-method, w
 
 The SAML Spring Security library needs the following keys:
 
-* private DSA key / public certificate pai for the eduProxy
+* private DSA key / public certificate pair for the eduProxy IdP / SP
 * the public certificate of the real IdentityProvider
 * the certificates of the Service Providers
 
@@ -58,7 +60,7 @@ cat eduproxy.der |ghead -n -1 |tail -n +2 | tr -d '\n'; echo
 cat eduproxy.crt |ghead -n -1 |tail -n +2 | tr -d '\n'; echo
 ```
 
-Add the am key pair to the application.properties file:
+Add the eduproxy key pair to the application.properties file:
 
 ```bash
 proxy.private_key=${output from cleaning the der file}
@@ -70,6 +72,15 @@ Add the Identity Provider certificate to the application.properties file:
 ```bash
 idp.certificate=${copy & paste from the metadata}
 ```
+
+The Service Providers allowed to connect can be provided in a Metadata feed configured in ```application.yml```:
+
+```bash
+edugain:
+  feed: http://mds.edugain.org/
+```
+By default - but easily changed / overridden - only Service Providers with valid signing certificates in the SAML metadata
+are allowed to connect.
 
 ## [SAML metadata](#saml-metadata)
 

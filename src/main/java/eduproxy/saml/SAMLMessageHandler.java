@@ -48,17 +48,17 @@ public class SAMLMessageHandler {
 
   private final List<ValidatorSuite> validatorSuites;
 
-  public SAMLMessageHandler(KeyManager keyManager,
-                            SAMLMessageDecoder samlMessageDecoder,
-                            SAMLMessageEncoder samlMessageEncoder,
-                            SecurityPolicyResolver securityPolicyResolver,
+  public SAMLMessageHandler(KeyManager keyManager, SAMLMessageDecoder samlMessageDecoder,
+                            SAMLMessageEncoder samlMessageEncoder, SecurityPolicyResolver securityPolicyResolver,
                             String entityId) {
     this.keyManager = keyManager;
     this.encoder = samlMessageEncoder;
     this.decoder = samlMessageDecoder;
     this.resolver = securityPolicyResolver;
     this.entityId = entityId;
-    this.validatorSuites = asList(getValidatorSuite("saml2-core-schema-validator"), getValidatorSuite("saml2-core-spec-validator"));
+    this.validatorSuites = asList(
+      getValidatorSuite("saml2-core-schema-validator"),
+      getValidatorSuite("saml2-core-spec-validator"));
   }
 
   public SAMLMessageContext extractSAMLMessageContext(HttpServletRequest request) {

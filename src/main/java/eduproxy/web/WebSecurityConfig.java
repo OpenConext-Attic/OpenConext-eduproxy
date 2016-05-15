@@ -34,7 +34,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.builders.WebSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
-import org.springframework.security.saml.*;
+import org.springframework.security.saml.SAMLAuthenticationProvider;
+import org.springframework.security.saml.SAMLBootstrap;
+import org.springframework.security.saml.SAMLEntryPoint;
+import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.saml.context.SAMLContextProviderImpl;
 import org.springframework.security.saml.key.JKSKeyManager;
 import org.springframework.security.saml.key.KeyManager;
@@ -50,9 +53,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
@@ -105,7 +105,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   private DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader();
 
-
   @Bean
   public SAMLAuthenticationProvider samlAuthenticationProvider() {
     SAMLAuthenticationProvider samlAuthenticationProvider = new ProxySAMLAuthenticationProvider();
@@ -146,10 +145,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterAfter(samlFilter(), BasicAuthenticationFilter.class)
       .authorizeRequests()
       .antMatchers("/saml/idp/**", "/sp/metadata", "/saml/SSO/**", "/idp/metadata").permitAll()
-      .anyRequest().hasRole("USER")
-      .and()
-      .logout()
-      .logoutSuccessUrl("/");
+      .anyRequest().hasRole("USER");
   }
 
   @Override
@@ -165,11 +161,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public AuthenticationSuccessHandler successRedirectHandler() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, XMLStreamException {
-    return new ProxyAuthenticationSuccessHandler(samlMessageHandler());
-  }
-
-  @Bean
   public SimpleUrlAuthenticationFailureHandler authenticationFailureHandler() {
     SimpleUrlAuthenticationFailureHandler failureHandler = new SimpleUrlAuthenticationFailureHandler();
     failureHandler.setUseForward(true);
@@ -182,7 +173,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   public SAMLProcessingFilter samlWebSSOProcessingFilter() throws Exception {
     SAMLProcessingFilter samlWebSSOProcessingFilter = new SAMLProcessingFilter();
     samlWebSSOProcessingFilter.setAuthenticationManager(authenticationManager());
-    samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(successRedirectHandler());
+    samlWebSSOProcessingFilter.setAuthenticationSuccessHandler(new ProxyAuthenticationSuccessHandler(samlMessageHandler()));
     samlWebSSOProcessingFilter.setAuthenticationFailureHandler(authenticationFailureHandler());
     return samlWebSSOProcessingFilter;
   }
@@ -296,11 +287,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public SingleLogoutProfile logoutprofile() {
-    return new SingleLogoutProfileImpl();
-  }
-
-  @Bean
   public SAMLContextProviderImpl contextProvider() throws URISyntaxException {
     return new ProxiedSAMLContextProviderLB(new URI(serviceProviderBaseUrl));
   }
@@ -336,31 +322,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       }
     });
     return new JKSKeyManager(keyStore, Collections.singletonMap(serviceProviderEntityId, serviceProviderPassphrase), serviceProviderEntityId);
-  }
-
-  @Bean
-  public SimpleUrlLogoutSuccessHandler successLogoutHandler() {
-    SimpleUrlLogoutSuccessHandler successLogoutHandler = new SimpleUrlLogoutSuccessHandler();
-    successLogoutHandler.setDefaultTargetUrl("/");
-    return successLogoutHandler;
-  }
-
-  @Bean
-  public SecurityContextLogoutHandler logoutHandler() {
-    SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
-    logoutHandler.setInvalidateHttpSession(true);
-    logoutHandler.setClearAuthentication(true);
-    return logoutHandler;
-  }
-
-  @Bean
-  public SAMLLogoutProcessingFilter samlLogoutProcessingFilter() {
-    return new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
-  }
-
-  @Bean
-  public SAMLLogoutFilter samlLogoutFilter() {
-    return new SAMLLogoutFilter(successLogoutHandler(), new LogoutHandler[]{logoutHandler()}, new LogoutHandler[]{logoutHandler()});
   }
 
   private ArtifactResolutionProfile artifactResolutionProfile() {
