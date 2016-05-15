@@ -33,9 +33,8 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
       sendAuthResponse(response);
       return;
     }
-    /**
-     * The SAMLRequest parameters are urlEncoded and the extraction expects unencoded parameters
-     */
+
+    //The SAMLRequest parameters are urlEncoded and the extraction expects unencoded parameters
     SAMLMessageContext messageContext = samlMessageHandler.extractSAMLMessageContext(new ParameterDecodingHttpServletRequestWrapper(request));
 
     AuthnRequest authnRequest = (AuthnRequest) messageContext.getInboundSAMLMessage();
@@ -50,36 +49,25 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
 
     //redirect to login page will trigger the sending of AuthRequest to the IdP
     request.getRequestDispatcher("/saml/login").forward(request, response);
-
   }
 
   @Override
   protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
-    if (!processFilter(request)) {
+    if (!SAMLUtil.processFilter("/saml/idp", request)) {
       chain.doFilter(request, response);
       return;
     }
-
     commence(request, response, null);
   }
 
   private void sendAuthResponse(HttpServletResponse response) {
     SAMLPrincipal principal = (SAMLPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    try {
-      samlMessageHandler.sendAuthnResponse(principal, response);
-    } catch (MarshallingException | SignatureException | MessageEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    samlMessageHandler.sendAuthnResponse(principal, response);
   }
 
   private boolean authenticationNotRequired() {
     Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
     return existingAuth != null && existingAuth.getPrincipal() instanceof SAMLPrincipal && existingAuth.isAuthenticated();
   }
-
-  protected boolean processFilter(HttpServletRequest request) {
-    return SAMLUtil.processFilter("/saml/idp", request);
-  }
-
 
 }

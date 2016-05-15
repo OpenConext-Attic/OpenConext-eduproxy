@@ -78,7 +78,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Autowired
   private Environment environment;
 
-
   @Value("${idp.metadata_url}")
   private String identityProviderMetadataUrl;
 
@@ -175,7 +174,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     return failureHandler;
   }
 
-
   @Bean
   @Autowired
   public SAMLProcessingFilter samlWebSSOProcessingFilter() throws Exception {
@@ -211,218 +209,217 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     return new DefaultSecurityFilterChain(new AntPathRequestMatcher(pattern), entryPoint);
   }
 
-    @Bean
-    public ExtendedMetadata extendedMetadata() {
-      ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-      extendedMetadata.setIdpDiscoveryEnabled(false);
-      extendedMetadata.setSignMetadata(false);
-      return extendedMetadata;
+  @Bean
+  public ExtendedMetadata extendedMetadata() {
+    ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+    extendedMetadata.setIdpDiscoveryEnabled(false);
+    extendedMetadata.setSignMetadata(false);
+    return extendedMetadata;
+  }
+
+  @Bean
+  public MetadataProvider identityProvider() throws MetadataProviderException {
+    Resource resource = new DefaultResourceLoader().getResource(identityProviderMetadataUrl);
+    ResourceMetadataProvider resourceMetadataProvider = new ResourceMetadataProvider(resource);
+    resourceMetadataProvider.setParserPool(parserPool());
+    ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(resourceMetadataProvider, extendedMetadata());
+    extendedMetadataDelegate.setMetadataTrustCheck(true);
+    extendedMetadataDelegate.setMetadataRequireSignature(false);
+    return extendedMetadataDelegate;
+  }
+
+  @Bean
+  @Qualifier("metadata")
+  public CachingMetadataManager metadata() throws MetadataProviderException {
+    List<MetadataProvider> providers = new ArrayList<>();
+    providers.add(identityProvider());
+
+    return new CachingMetadataManager(providers);
+  }
+
+  @Bean
+  public VelocityEngine velocityEngine() {
+    return VelocityFactory.getEngine();
+  }
+
+  @Bean(initMethod = "initialize")
+  public StaticBasicParserPool parserPool() {
+    return new StaticBasicParserPool();
+  }
+
+  @Bean(name = "parserPoolHolder")
+  public ParserPoolHolder parserPoolHolder() {
+    return new ParserPoolHolder();
+  }
+
+  @Bean
+  public MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager() {
+    return new MultiThreadedHttpConnectionManager();
+  }
+
+  @Bean
+  public HttpClient httpClient() {
+    return new HttpClient(multiThreadedHttpConnectionManager());
+  }
+
+  @Bean
+  public static SAMLBootstrap sAMLBootstrap() {
+    return new SAMLBootstrap();
+  }
+
+  @Bean
+  public SAMLDefaultLogger samlLogger() {
+    return new SAMLDefaultLogger();
+  }
+
+  @Bean
+  public WebSSOProfileConsumer webSSOprofileConsumer() {
+    return new WebSSOProfileConsumerImpl();
+  }
+
+  @Bean
+  public WebSSOProfileConsumerHoKImpl hokWebSSOprofileConsumer() {
+    return new WebSSOProfileConsumerHoKImpl();
+  }
+
+  @Bean
+  public WebSSOProfile webSSOprofile() {
+    return new WebSSOProfileImpl();
+  }
+
+  @Bean
+  public WebSSOProfileECPImpl ecpprofile() {
+    return new WebSSOProfileECPImpl();
+  }
+
+  @Bean
+  public SingleLogoutProfile logoutprofile() {
+    return new SingleLogoutProfileImpl();
+  }
+
+  @Bean
+  public SAMLContextProviderImpl contextProvider() throws URISyntaxException {
+    return new ProxiedSAMLContextProviderLB(new URI(serviceProviderBaseUrl));
+  }
+
+  @Bean
+  public MetadataGenerator metadataGenerator() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
+    MetadataGenerator metadataGenerator = new MetadataGenerator();
+    metadataGenerator.setEntityId(serviceProviderEntityId);
+    metadataGenerator.setEntityBaseURL(serviceProviderBaseUrl);
+    metadataGenerator.setExtendedMetadata(extendedMetadata());
+    metadataGenerator.setIncludeDiscoveryExtension(false);
+    metadataGenerator.setKeyManager(keyManager());
+    if (environment.acceptsProfiles("dev")) {
+      metadataGenerator.setWantAssertionSigned(false);
     }
+    return metadataGenerator;
+  }
 
-    @Bean
-    public MetadataProvider identityProvider() throws MetadataProviderException {
-      Resource resource = new DefaultResourceLoader().getResource(identityProviderMetadataUrl);
-      ResourceMetadataProvider resourceMetadataProvider = new ResourceMetadataProvider(resource);
-      resourceMetadataProvider.setParserPool(parserPool());
-      ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(resourceMetadataProvider, extendedMetadata());
-      extendedMetadataDelegate.setMetadataTrustCheck(true);
-      extendedMetadataDelegate.setMetadataRequireSignature(false);
-      return extendedMetadataDelegate;
-    }
+  @Bean
+  public KeyManager keyManager() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    KeyStoreLocator keyStoreLocator = new KeyStoreLocator();
+    KeyStore keyStore = keyStoreLocator.createKeyStore(serviceProviderPassphrase);
 
-    @Bean
-    @Qualifier("metadata")
-    public CachingMetadataManager metadata() throws MetadataProviderException {
-      List<MetadataProvider> providers = new ArrayList<>();
-      providers.add(identityProvider());
+    keyStoreLocator.addPrivateKey(keyStore, serviceProviderEntityId, serviceProviderPrivateKey, serviceProviderCertificate, serviceProviderPassphrase);
+    keyStoreLocator.addCertificate(keyStore, identityProviderEntityId, serviceProviderCertificate);
 
-      return new CachingMetadataManager(providers);
-    }
+    return new JKSKeyManager(keyStore, Collections.singletonMap(serviceProviderEntityId, serviceProviderPassphrase), serviceProviderEntityId);
+  }
 
-    @Bean
-    public VelocityEngine velocityEngine() {
-      return VelocityFactory.getEngine();
-    }
+  @Bean
+  public SimpleUrlLogoutSuccessHandler successLogoutHandler() {
+    SimpleUrlLogoutSuccessHandler successLogoutHandler = new SimpleUrlLogoutSuccessHandler();
+    successLogoutHandler.setDefaultTargetUrl("/");
+    return successLogoutHandler;
+  }
 
-    @Bean(initMethod = "initialize")
-    public StaticBasicParserPool parserPool() {
-      return new StaticBasicParserPool();
-    }
+  @Bean
+  public SecurityContextLogoutHandler logoutHandler() {
+    SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
+    logoutHandler.setInvalidateHttpSession(true);
+    logoutHandler.setClearAuthentication(true);
+    return logoutHandler;
+  }
 
-    @Bean(name = "parserPoolHolder")
-    public ParserPoolHolder parserPoolHolder() {
-      return new ParserPoolHolder();
-    }
+  @Bean
+  public SAMLLogoutProcessingFilter samlLogoutProcessingFilter() {
+    return new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
+  }
 
-    @Bean
-    public MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager() {
-      return new MultiThreadedHttpConnectionManager();
-    }
+  @Bean
+  public SAMLLogoutFilter samlLogoutFilter() {
+    return new SAMLLogoutFilter(successLogoutHandler(), new LogoutHandler[]{logoutHandler()}, new LogoutHandler[]{logoutHandler()});
+  }
 
-    @Bean
-    public HttpClient httpClient() {
-      return new HttpClient(multiThreadedHttpConnectionManager());
-    }
+  private ArtifactResolutionProfile artifactResolutionProfile() {
+    final ArtifactResolutionProfileImpl artifactResolutionProfile = new ArtifactResolutionProfileImpl(httpClient());
+    artifactResolutionProfile.setProcessor(new SAMLProcessorImpl(soapBinding()));
+    return artifactResolutionProfile;
+  }
 
-    @Bean
-    public static SAMLBootstrap sAMLBootstrap() {
-      return new SAMLBootstrap();
-    }
+  @Bean
+  public HTTPArtifactBinding artifactBinding(ParserPool parserPool, VelocityEngine velocityEngine) {
+    return new HTTPArtifactBinding(parserPool, velocityEngine, artifactResolutionProfile());
+  }
 
-    @Bean
-    public SAMLDefaultLogger samlLogger() {
-      return new SAMLDefaultLogger();
-    }
+  @Bean
+  public HTTPSOAP11Binding soapBinding() {
+    return new HTTPSOAP11Binding(parserPool());
+  }
 
-    @Bean
-    public WebSSOProfileConsumer webSSOprofileConsumer() {
-      return new WebSSOProfileConsumerImpl();
-    }
+  @Bean
+  public HTTPPostBinding httpPostBinding() {
+    ParserPool parserPool = parserPool();
+    HTTPPostEncoder encoder = new HTTPPostEncoder(velocityEngine(), "/templates/saml2-post-binding.vm");
+    return new HTTPPostBinding(parserPool, new HTTPPostDecoder(parserPool), encoder);
+  }
 
-    @Bean
-    public WebSSOProfileConsumerHoKImpl hokWebSSOprofileConsumer() {
-      return new WebSSOProfileConsumerHoKImpl();
-    }
+  @Bean
+  public HTTPRedirectDeflateBinding httpRedirectDeflateBinding() {
+    return new HTTPRedirectDeflateBinding(parserPool());
+  }
 
-    @Bean
-    public WebSSOProfile webSSOprofile() {
-      return new WebSSOProfileImpl();
-    }
+  @Bean
+  public HTTPSOAP11Binding httpSOAP11Binding() {
+    return new HTTPSOAP11Binding(parserPool());
+  }
 
-    @Bean
-    public WebSSOProfileECPImpl ecpprofile() {
-      return new WebSSOProfileECPImpl();
-    }
+  @Bean
+  public HTTPPAOS11Binding httpPAOS11Binding() {
+    return new HTTPPAOS11Binding(parserPool());
+  }
 
-    @Bean
-    public SingleLogoutProfile logoutprofile() {
-      return new SingleLogoutProfileImpl();
-    }
+  @Bean
+  public SAMLProcessorImpl processor() {
+    Collection<SAMLBinding> bindings = new ArrayList<>();
+    bindings.add(httpRedirectDeflateBinding());
+    bindings.add(httpPostBinding());
+    bindings.add(artifactBinding(parserPool(), velocityEngine()));
+    bindings.add(httpSOAP11Binding());
+    bindings.add(httpPAOS11Binding());
+    return new SAMLProcessorImpl(bindings);
+  }
 
-    @Bean
-    public SAMLContextProviderImpl contextProvider() throws URISyntaxException {
-      return new ProxiedSAMLContextProviderLB(new URI(serviceProviderBaseUrl));
-    }
+  @Bean
+  public SAMLMessageHandler samlMessageHandler() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
+    return new SAMLMessageHandler(
+      keyManager(),
+      new HTTPRedirectDeflateDecoder(new BasicParserPool()),
+      new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
+      securityPolicyResolver(),
+      serviceProviderEntityId);
+  }
 
-    @Bean
-    public MetadataGenerator metadataGenerator() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
-      MetadataGenerator metadataGenerator = new MetadataGenerator();
-      metadataGenerator.setEntityId(serviceProviderEntityId);
-      metadataGenerator.setEntityBaseURL(serviceProviderBaseUrl);
-      metadataGenerator.setExtendedMetadata(extendedMetadata());
-      metadataGenerator.setIncludeDiscoveryExtension(false);
-      metadataGenerator.setKeyManager(keyManager());
-      if (environment.acceptsProfiles("dev")) {
-        metadataGenerator.setWantAssertionSigned(false);
-      }
-      return metadataGenerator;
-    }
+  private SecurityPolicyResolver securityPolicyResolver() {
+    IssueInstantRule instantRule = new IssueInstantRule(90, 300);
+    MessageReplayRule replayRule = new MessageReplayRule(new ReplayCache(new MapBasedStorageService(), 14400000));
 
-    @Bean
-    public KeyManager keyManager() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
-      KeyStoreLocator keyStoreLocator = new KeyStoreLocator();
-      KeyStore keyStore = keyStoreLocator.createKeyStore(serviceProviderPassphrase);
+    BasicSecurityPolicy securityPolicy = new BasicSecurityPolicy();
+    securityPolicy.getPolicyRules().addAll(Arrays.asList(instantRule, replayRule));
 
-      keyStoreLocator.addPrivateKey(keyStore, serviceProviderEntityId, serviceProviderPrivateKey, serviceProviderCertificate, serviceProviderPassphrase);
-      keyStoreLocator.addCertificate(keyStore, identityProviderEntityId, serviceProviderCertificate);
-
-      return new JKSKeyManager(keyStore, Collections.singletonMap(serviceProviderEntityId, serviceProviderPassphrase), serviceProviderEntityId);
-    }
-
-    @Bean
-    public SimpleUrlLogoutSuccessHandler successLogoutHandler() {
-      SimpleUrlLogoutSuccessHandler successLogoutHandler = new SimpleUrlLogoutSuccessHandler();
-      successLogoutHandler.setDefaultTargetUrl("/");
-      return successLogoutHandler;
-    }
-
-    @Bean
-    public SecurityContextLogoutHandler logoutHandler() {
-      SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
-      logoutHandler.setInvalidateHttpSession(true);
-      logoutHandler.setClearAuthentication(true);
-      return logoutHandler;
-    }
-
-    @Bean
-    public SAMLLogoutProcessingFilter samlLogoutProcessingFilter() {
-      return new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
-    }
-
-    @Bean
-    public SAMLLogoutFilter samlLogoutFilter() {
-      return new SAMLLogoutFilter(successLogoutHandler(), new LogoutHandler[]{logoutHandler()}, new LogoutHandler[]{logoutHandler()});
-    }
-
-    private ArtifactResolutionProfile artifactResolutionProfile() {
-      final ArtifactResolutionProfileImpl artifactResolutionProfile = new ArtifactResolutionProfileImpl(httpClient());
-      artifactResolutionProfile.setProcessor(new SAMLProcessorImpl(soapBinding()));
-      return artifactResolutionProfile;
-    }
-
-    @Bean
-    public HTTPArtifactBinding artifactBinding(ParserPool parserPool, VelocityEngine velocityEngine) {
-      return new HTTPArtifactBinding(parserPool, velocityEngine, artifactResolutionProfile());
-    }
-
-    @Bean
-    public HTTPSOAP11Binding soapBinding() {
-      return new HTTPSOAP11Binding(parserPool());
-    }
-
-    @Bean
-    public HTTPPostBinding httpPostBinding() {
-      ParserPool parserPool = parserPool();
-      HTTPPostEncoder encoder = new HTTPPostEncoder(velocityEngine(), "/templates/saml2-post-binding.vm");
-      return new HTTPPostBinding(parserPool, new HTTPPostDecoder(parserPool), encoder);
-    }
-
-    @Bean
-    public HTTPRedirectDeflateBinding httpRedirectDeflateBinding() {
-      return new HTTPRedirectDeflateBinding(parserPool());
-    }
-
-    @Bean
-    public HTTPSOAP11Binding httpSOAP11Binding() {
-      return new HTTPSOAP11Binding(parserPool());
-    }
-
-    @Bean
-    public HTTPPAOS11Binding httpPAOS11Binding() {
-      return new HTTPPAOS11Binding(parserPool());
-    }
-
-    @Bean
-    public SAMLProcessorImpl processor() {
-      Collection<SAMLBinding> bindings = new ArrayList<>();
-      bindings.add(httpRedirectDeflateBinding());
-      bindings.add(httpPostBinding());
-      bindings.add(artifactBinding(parserPool(), velocityEngine()));
-      bindings.add(httpSOAP11Binding());
-      bindings.add(httpPAOS11Binding());
-      return new SAMLProcessorImpl(bindings);
-    }
-
-    @Bean
-    public SAMLMessageHandler samlMessageHandler() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
-      return new SAMLMessageHandler(
-        keyManager(),
-        new HTTPRedirectDeflateDecoder(new BasicParserPool()),
-        new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
-        securityPolicyResolver(),
-        serviceProviderEntityId);
-    }
-
-    private SecurityPolicyResolver securityPolicyResolver() {
-      IssueInstantRule instantRule = new IssueInstantRule(90, 300);
-      MessageReplayRule replayRule = new MessageReplayRule(new ReplayCache(new MapBasedStorageService(), 14400000));
-
-      BasicSecurityPolicy securityPolicy = new BasicSecurityPolicy();
-      securityPolicy.getPolicyRules().addAll(Arrays.asList(instantRule, replayRule));
-
-      return new StaticSecurityPolicyResolver(securityPolicy);
-    }
-
+    return new StaticSecurityPolicyResolver(securityPolicy);
+  }
 
 
 }

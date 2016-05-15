@@ -34,7 +34,7 @@ public class DefaultSAMLUserDetailsService implements SAMLUserDetailsService {
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
     if (authentication == null || !(authentication.getPrincipal() instanceof SAMLPrincipal)) {
-      throw new IllegalArgumentException("Authentication.Principal is not SAMLPrincipal");
+      throw new IllegalArgumentException("Authentication.Principal is not SAMLPrincipal, but " + authentication);
     }
     SAMLPrincipal principal = (SAMLPrincipal) authentication.getPrincipal();
     List<SAMLAttribute> attributes = credential.getAttributes().stream().map(attribute ->

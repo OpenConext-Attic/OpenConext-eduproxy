@@ -62,7 +62,7 @@ public class SAMLMessageHandler {
     this.validatorSuites = asList(getValidatorSuite("saml2-core-schema-validator"), getValidatorSuite("saml2-core-spec-validator"));
   }
 
-  public SAMLMessageContext extractSAMLMessageContext(HttpServletRequest request)  {
+  public SAMLMessageContext extractSAMLMessageContext(HttpServletRequest request) {
     BasicSAMLMessageContext messageContext = new BasicSAMLMessageContext();
 
     messageContext.setInboundMessageTransport(new HttpServletRequestAdapter(request));
@@ -88,11 +88,15 @@ public class SAMLMessageHandler {
     return messageContext;
   }
 
-  public void sendAuthnResponse(SAMLPrincipal principal, HttpServletResponse response) throws MarshallingException, SignatureException, MessageEncodingException {
-    doSendAuthnResponse(principal, response, buildStatus(StatusCode.SUCCESS_URI));
+  public void sendAuthnResponse(SAMLPrincipal principal, HttpServletResponse response) {
+    try {
+      doSendAuthnResponse(principal, response, buildStatus(StatusCode.SUCCESS_URI));
+    } catch (MarshallingException | SignatureException | MessageEncodingException e) {
+      throw new SAMLAuthenticationException("Exception during sending of AuthnResponse", e, principal);
+    }
   }
 
-  public void sendFailedAuthnResponse(SAMLAuthenticationException authenticationException, HttpServletRequest request, HttpServletResponse response ) throws MarshallingException, SignatureException, MessageEncodingException {
+  public void sendFailedAuthnResponse(SAMLAuthenticationException authenticationException, HttpServletResponse response) throws MarshallingException, SignatureException, MessageEncodingException {
     doSendAuthnResponse(authenticationException.getPrincipal(), response, buildStatus(StatusCode.RESPONDER_URI, StatusCode.AUTHN_FAILED_URI, authenticationException.getMessage()));
   }
 
@@ -147,9 +151,9 @@ public class SAMLMessageHandler {
   }
 
   private void validate(HttpServletRequest request, AuthnRequest authnRequest) throws ValidationException, SecurityException {
-      validateXMLObject(authnRequest);
-      validateSignature(authnRequest);
-      validateRawSignature(request, authnRequest.getIssuer().getValue());
+    validateXMLObject(authnRequest);
+    validateSignature(authnRequest);
+    validateRawSignature(request, authnRequest.getIssuer().getValue());
   }
 
   private void validateXMLObject(XMLObject xmlObject) throws ValidationException {

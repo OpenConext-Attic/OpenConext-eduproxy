@@ -27,14 +27,10 @@ public class ProxyAuthenticationSuccessHandler implements AuthenticationSuccessH
 
   @Override
   public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
-    SAMLPrincipal principal = (SAMLPrincipal) authentication.getPrincipal();
     LOG.debug("Sending response for successful authentication {}", authentication);
 
-    try {
-      samlMessageHandler.sendAuthnResponse(principal, response);
-    } catch (MarshallingException | SignatureException | MessageEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    SAMLPrincipal principal = (SAMLPrincipal) authentication.getPrincipal();
+    samlMessageHandler.sendAuthnResponse(principal, response);
   }
 
 }

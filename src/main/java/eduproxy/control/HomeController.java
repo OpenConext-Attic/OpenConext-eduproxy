@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 public class HomeController {
 
   @RequestMapping("/user")
-  public String disconnect(Authentication authentication, ModelMap modelMap) {
+  public String user(Authentication authentication, ModelMap modelMap) {
     modelMap.addAttribute("user", authentication.getPrincipal());
     return "user";
   }

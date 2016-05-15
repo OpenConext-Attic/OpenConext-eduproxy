@@ -17,6 +17,11 @@ public class SAMLAuthenticationException extends RuntimeException {
       messageContext.getRelayState());
   }
 
+  public SAMLAuthenticationException(String message, Exception exception,SAMLPrincipal principal) {
+    super(message, exception);
+    this.principal = principal;
+  }
+
   public SAMLPrincipal getPrincipal() {
     return principal;
   }

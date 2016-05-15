@@ -42,7 +42,7 @@ public class ErrorController implements org.springframework.boot.autoconfigure.w
     RequestAttributes requestAttributes = new ServletRequestAttributes(request);
     Throwable error = this.errorAttributes.getError(requestAttributes);
     if (error instanceof SAMLAuthenticationException) {
-      samlMessageHandler.sendFailedAuthnResponse((SAMLAuthenticationException) error, request, response);
+      samlMessageHandler.sendFailedAuthnResponse((SAMLAuthenticationException) error, response);
     } else {
       response.sendError(FORBIDDEN.value());
     }
