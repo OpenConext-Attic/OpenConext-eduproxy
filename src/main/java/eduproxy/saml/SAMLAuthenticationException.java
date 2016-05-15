@@ -1,17 +1,23 @@
 package eduproxy.saml;
 
 import org.opensaml.common.binding.BasicSAMLMessageContext;
+import org.opensaml.saml2.core.AuthnRequest;
 
 public class SAMLAuthenticationException extends RuntimeException {
 
-  private final BasicSAMLMessageContext messageContext;
+  private final SAMLPrincipal principal;
 
   public SAMLAuthenticationException(String message, Exception exception, BasicSAMLMessageContext messageContext) {
     super(message, exception);
-    this.messageContext = messageContext;
+    AuthnRequest authnRequest = (AuthnRequest) messageContext.getInboundSAMLMessage();
+    this.principal = new SAMLPrincipal(
+      authnRequest.getProviderName(),
+      authnRequest.getID(),
+      authnRequest.getAssertionConsumerServiceURL(),
+      messageContext.getRelayState());
   }
 
-  public BasicSAMLMessageContext getMessageContext() {
-    return messageContext;
+  public SAMLPrincipal getPrincipal() {
+    return principal;
   }
 }

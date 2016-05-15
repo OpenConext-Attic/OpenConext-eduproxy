@@ -6,7 +6,10 @@ import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.saml.util.SAMLUtil;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -15,7 +18,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class IdentityProviderAuthnFilter extends OncePerRequestFilter {
+
+public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements AuthenticationEntryPoint {
 
   private final SAMLMessageHandler samlMessageHandler;
 
@@ -24,9 +28,10 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter {
   }
 
   @Override
-  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+  public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
     if (authenticationNotRequired()) {
       sendAuthResponse(response);
+      return;
     }
     /**
      * The SAMLRequest parameters are urlEncoded and the extraction expects unencoded parameters
@@ -35,17 +40,33 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter {
 
     AuthnRequest authnRequest = (AuthnRequest) messageContext.getInboundSAMLMessage();
 
-    ProxySAMLAuthenticationToken token = new ProxySAMLAuthenticationToken(authnRequest, messageContext.getRelayState(), request.getRemoteAddr());
-    SecurityContextHolder.getContext().setAuthentication(token);
+    SAMLPrincipal principal = new SAMLPrincipal(
+      authnRequest.getIssuer().getValue(),
+      authnRequest.getID(),
+      authnRequest.getAssertionConsumerServiceURL(),
+      messageContext.getRelayState());
 
-    //redirect to login page - or trigger the sending of AuthRequest
+    SecurityContextHolder.getContext().setAuthentication(new SAMLAuthentication(principal));
+
+    //redirect to login page will trigger the sending of AuthRequest to the IdP
     request.getRequestDispatcher("/saml/login").forward(request, response);
+
+  }
+
+  @Override
+  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+    if (!processFilter(request)) {
+      chain.doFilter(request, response);
+      return;
+    }
+
+    commence(request, response, null);
   }
 
   private void sendAuthResponse(HttpServletResponse response) {
-    ProxySAMLAuthenticationToken token = (ProxySAMLAuthenticationToken) SecurityContextHolder.getContext().getAuthentication();
+    SAMLPrincipal principal = (SAMLPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
     try {
-      samlMessageHandler.sendAuthnResponse(token, response);
+      samlMessageHandler.sendAuthnResponse(principal, response);
     } catch (MarshallingException | SignatureException | MessageEncodingException e) {
       throw new RuntimeException(e);
     }
@@ -53,7 +74,12 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter {
 
   private boolean authenticationNotRequired() {
     Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
-    return existingAuth != null && existingAuth instanceof ProxySAMLAuthenticationToken && existingAuth.isAuthenticated();
+    return existingAuth != null && existingAuth.getPrincipal() instanceof SAMLPrincipal && existingAuth.isAuthenticated();
   }
+
+  protected boolean processFilter(HttpServletRequest request) {
+    return SAMLUtil.processFilter("/saml/idp", request);
+  }
+
 
 }

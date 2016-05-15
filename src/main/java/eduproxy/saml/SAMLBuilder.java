@@ -3,17 +3,24 @@ package eduproxy.saml;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.saml2.core.*;
+import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilderFactory;
+import org.opensaml.xml.schema.XSAny;
 import org.opensaml.xml.schema.XSString;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
 import javax.xml.namespace.QName;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 public class SAMLBuilder {
 
@@ -31,7 +38,7 @@ public class SAMLBuilder {
     return issuer;
   }
 
-  public static Subject buildSubject(String subjectNameId, String recipient, String inResponseTo, String clientIp) {
+  public static Subject buildSubject(String subjectNameId, String recipient, String inResponseTo) {
     NameID nameID = buildSAMLObject(NameID.class, NameID.DEFAULT_ELEMENT_NAME);
     nameID.setValue(subjectNameId);
     nameID.setFormat(NameIDType.PERSISTENT);
@@ -46,8 +53,8 @@ public class SAMLBuilder {
 
     subjectConfirmationData.setRecipient(recipient);
     subjectConfirmationData.setInResponseTo(inResponseTo);
-    subjectConfirmationData.setNotOnOrAfter(new DateTime().plusSeconds(90));
-    subjectConfirmationData.setAddress(clientIp);
+    subjectConfirmationData.setNotOnOrAfter(new DateTime().plusMinutes(8 * 60));
+    subjectConfirmationData.setAddress(recipient);
 
     subjectConfirmation.setSubjectConfirmationData(subjectConfirmationData);
 
@@ -78,18 +85,18 @@ public class SAMLBuilder {
     return status;
   }
 
-  public static Assertion buildAssertion(ProxySAMLAuthenticationToken token, Status status, String entityId, String spMetaDataUrl) {
+  public static Assertion buildAssertion(SAMLPrincipal principal, Status status, String entityId) {
     Assertion assertion = buildSAMLObject(Assertion.class, Assertion.DEFAULT_ELEMENT_NAME);
 
     if (status.getStatusCode().getValue().equals(StatusCode.SUCCESS_URI)) {
-      Subject subject = null;// buildSubject(token.getNameId(), token.getAssertionConsumerServiceURL(), token.getId(), token.getClientIpAddress());
+      Subject subject = buildSubject(principal.getNameID(), principal.getAssertionConsumerServiceURL(), principal.getNameID());
       assertion.setSubject(subject);
     }
 
     Issuer issuer = buildIssuer(entityId);
 
     Audience audience = buildSAMLObject(Audience.class, Audience.DEFAULT_ELEMENT_NAME);
-    audience.setAudienceURI(spMetaDataUrl);
+    audience.setAudienceURI(principal.getServiceProviderEntityID());
     AudienceRestriction audienceRestriction = buildSAMLObject(AudienceRestriction.class, AudienceRestriction.DEFAULT_ELEMENT_NAME);
     audienceRestriction.getAudiences().add(audience);
 
@@ -102,8 +109,7 @@ public class SAMLBuilder {
     assertion.setIssuer(issuer);
     assertion.getAuthnStatements().add(authnStatement);
 
-//    Map<String, List<String>> attributes = singletonMap("urn:mace:dir:attribute-def:uid", singletonList(token.getNameId()));
-//    assertion.getAttributeStatements().add(buildAttributeStatement(attributes));
+    assertion.getAttributeStatements().add(buildAttributeStatement(principal.getAttributes()));
 
     assertion.setID(UUID.randomUUID().toString());
     assertion.setIssueInstant(new DateTime());
@@ -111,7 +117,28 @@ public class SAMLBuilder {
     return assertion;
   }
 
-  public static AuthnStatement buildAuthnStatement(DateTime authnInstant, String entityID) {
+  public static Optional<String> getStringValueFromXMLObject(XMLObject xmlObj) {
+    if (xmlObj instanceof XSString) {
+      return Optional.of(((XSString) xmlObj).getValue());
+    } else if (xmlObj instanceof XSAny) {
+      XSAny xsAny = (XSAny) xmlObj;
+      String textContent = xsAny.getTextContent();
+      if (StringUtils.hasText(textContent)) {
+        return Optional.of(textContent);
+      }
+      List<XMLObject> unknownXMLObjects = xsAny.getUnknownXMLObjects();
+      if (!CollectionUtils.isEmpty(unknownXMLObjects)) {
+        XMLObject xmlObject = unknownXMLObjects.get(0);
+        if (xmlObject instanceof NameID) {
+          NameID nameID = (NameID) xmlObject;
+          return Optional.of(nameID.getValue());
+        }
+      }
+    }
+    return Optional.empty();
+  }
+
+  private static AuthnStatement buildAuthnStatement(DateTime authnInstant, String entityID) {
     AuthnContextClassRef authnContextClassRef = buildSAMLObject(AuthnContextClassRef.class, AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
     authnContextClassRef.setAuthnContextClassRef(AuthnContext.PASSWORD_AUTHN_CTX);
 
@@ -131,14 +158,14 @@ public class SAMLBuilder {
 
   }
 
-  public static AttributeStatement buildAttributeStatement(final Map<String, List<String>> attributes) {
+  private static AttributeStatement buildAttributeStatement(List<SAMLAttribute> attributes) {
     AttributeStatement attributeStatement = buildSAMLObject(AttributeStatement.class, AttributeStatement.DEFAULT_ELEMENT_NAME);
 
-    attributes.entrySet().forEach(entry ->
+    attributes.forEach(entry ->
         attributeStatement.getAttributes().add(
             buildAttribute(
-                entry.getKey(),
-                entry.getValue().stream().map(SAMLBuilder::buildXSString).collect(toList()))));
+                entry.getName(),
+                entry.getValues().stream().map(SAMLBuilder::buildXSString).collect(toList()))));
 
     return attributeStatement;
   }

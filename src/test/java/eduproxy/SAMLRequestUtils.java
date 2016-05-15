@@ -49,7 +49,7 @@ public class SAMLRequestUtils {
     authnRequest.setIssuer(buildIssuer(entityName));
 
     if (userId.isPresent()) {
-      Subject subject = buildSubject(userId.get(), "http://localhost:8080", UUID.randomUUID().toString(), InetAddress.getLocalHost().toString());
+      Subject subject = buildSubject(userId.get(), "http://localhost:8080", UUID.randomUUID().toString());
       authnRequest.setSubject(subject);
     }
 

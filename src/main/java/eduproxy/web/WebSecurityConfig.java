@@ -50,6 +50,7 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
+import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
@@ -107,6 +108,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     SAMLAuthenticationProvider samlAuthenticationProvider = new ProxySAMLAuthenticationProvider();
     samlAuthenticationProvider.setUserDetails(new DefaultSAMLUserDetailsService());
     samlAuthenticationProvider.setForcePrincipalAsString(false);
+    samlAuthenticationProvider.setExcludeCredential(true);
     return samlAuthenticationProvider;
   }
 
@@ -134,21 +136,17 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Override
   protected void configure(HttpSecurity http) throws Exception {
     http
-      .httpBasic().authenticationEntryPoint(samlEntryPoint())
+      .httpBasic().authenticationEntryPoint(identityProviderAuthnFilter())
       .and()
       .csrf().disable()
       .addFilterBefore(metadataGeneratorFilter(), ChannelProcessingFilter.class)
       .addFilterAfter(samlFilter(), BasicAuthenticationFilter.class)
       .authorizeRequests()
-      .antMatchers("/saml/**").permitAll()
+      .antMatchers("/saml/idp/**", "/saml/metadata/**", "/saml/SSO/**").permitAll()
       .anyRequest().hasRole("USER")
       .and()
       .logout()
       .logoutSuccessUrl("/");
-
-    if (environment.acceptsProfiles("dev")) {
-      //http.addFilterBefore(new MockAuthenticationFilter(), BasicAuthenticationFilter.class);
-    }
   }
 
   @Override
@@ -162,10 +160,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler() {
-    SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler = new SavedRequestAwareAuthenticationSuccessHandler();
-    successRedirectHandler.setDefaultTargetUrl("/mappings");
-    return successRedirectHandler;
+  public AuthenticationSuccessHandler successRedirectHandler() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException {
+    ProxyAuthenticationSuccessHandler successHandler = new ProxyAuthenticationSuccessHandler(samlMessageHandler());
+    return successHandler;
   }
 
   @Bean
@@ -196,11 +193,16 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Bean
   public FilterChainProxy samlFilter() throws Exception {
     List<SecurityFilterChain> chains = new ArrayList<>();
-    chains.add(chain("/saml/idp/**", new IdentityProviderAuthnFilter(samlMessageHandler())));
+    chains.add(chain("/saml/idp/**", identityProviderAuthnFilter()));
     chains.add(chain("/saml/login/**", samlEntryPoint()));
     chains.add(chain("/saml/metadata/**", metadataDisplayFilter()));
     chains.add(chain("/saml/SSO/**", samlWebSSOProcessingFilter()));
     return new FilterChainProxy(chains);
+  }
+
+  @Bean
+  public IdentityProviderAuthnFilter identityProviderAuthnFilter() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException {
+    return new IdentityProviderAuthnFilter(samlMessageHandler());
   }
 
   private DefaultSecurityFilterChain chain(String pattern, Filter entryPoint) {
@@ -308,6 +310,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       metadataGenerator.setExtendedMetadata(extendedMetadata());
       metadataGenerator.setIncludeDiscoveryExtension(false);
       metadataGenerator.setKeyManager(keyManager());
+      if (environment.acceptsProfiles("dev")) {
+        metadataGenerator.setWantAssertionSigned(false);
+      }
       return metadataGenerator;
     }
 
@@ -366,11 +371,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     @Bean
     public HTTPPostBinding httpPostBinding() {
       ParserPool parserPool = parserPool();
-      HTTPPostDecoder decoder = new HTTPPostDecoder(parserPool);
       HTTPPostEncoder encoder = new HTTPPostEncoder(velocityEngine(), "/templates/saml2-post-binding.vm");
-
-      decoder.setURIComparator(new DefaultURIComparator());
-      return new HTTPPostBinding(parserPool(), decoder, encoder);
+      return new HTTPPostBinding(parserPool, new HTTPPostDecoder(parserPool), encoder);
     }
 
     @Bean
@@ -406,7 +408,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
         new HTTPRedirectDeflateDecoder(new BasicParserPool()),
         new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
         securityPolicyResolver(),
-        identityProviderEntityId);
+        serviceProviderEntityId);
     }
 
     private SecurityPolicyResolver securityPolicyResolver() {

@@ -1,13 +1,16 @@
 package eduproxy.saml;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.saml.SAMLAuthenticationProvider;
+import org.springframework.security.saml.SAMLCredential;
+
+import java.util.Collection;
 
 public class ProxySAMLAuthenticationProvider extends SAMLAuthenticationProvider {
 
   @Override
-  public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-    return super.authenticate(authentication);
+  protected Collection<? extends GrantedAuthority> getEntitlements(SAMLCredential credential, Object userDetail) {
+    return AuthorityUtils.createAuthorityList("ROLE_USER");
   }
 }
