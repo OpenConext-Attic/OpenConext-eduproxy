@@ -1,7 +1,7 @@
 # OpenConext-saml-proxy
 
 [![Build Status](https://travis-ci.org/OpenConext/OpenConext-eduproxy.svg)](https://travis-ci.org/OpenConext/OpenConext-eduproxy)
-[![codecov.io](https://codecov.io/github/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/github/OpenConext/OpenConext-eduproxy)
+[![codecov.io](https://codecov.io/gh/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/gh/OpenConext/OpenConext-eduproxy)
 
 EDUProxy which is a SAML Service Provider and SAML Identity Provider.
 

@@ -1,26 +1,16 @@
 package eduproxy.saml;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
 
-import java.util.Collection;
-import java.util.Collections;
-
-public class SAMLAuthentication implements Authentication {
+public class SAMLAuthentication extends AbstractAuthenticationToken {
 
   private final SAMLPrincipal principal;
-  private final Collection<? extends GrantedAuthority> authorities;
 
   public SAMLAuthentication(SAMLPrincipal principal) {
+    super(AuthorityUtils.createAuthorityList("ROLE_USER"));
     this.principal = principal;
-    authorities = AuthorityUtils.createAuthorityList("ROLE_USER");
-  }
-
-  @Override
-  public Collection<? extends GrantedAuthority> getAuthorities() {
-
-    return this.authorities;
+    setAuthenticated(true);
   }
 
   @Override
@@ -29,27 +19,7 @@ public class SAMLAuthentication implements Authentication {
   }
 
   @Override
-  public Object getDetails() {
-    return principal;
-  }
-
-  @Override
   public Object getPrincipal() {
     return principal;
-  }
-
-  @Override
-  public boolean isAuthenticated() {
-    return false;
-  }
-
-  @Override
-  public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-    throw new IllegalArgumentException("Not allowed");
-  }
-
-  @Override
-  public String getName() {
-    return principal.getName();
   }
 }

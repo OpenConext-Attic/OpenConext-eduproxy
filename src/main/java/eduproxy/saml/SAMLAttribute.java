@@ -13,11 +13,6 @@ public class SAMLAttribute {
     this.values = values;
   }
 
-  public SAMLAttribute(String name, String value) {
-    this.name = name;
-    this.values = Collections.singletonList(value);
-  }
-
   public String getName() {
     return name;
   }

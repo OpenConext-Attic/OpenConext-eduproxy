@@ -17,12 +17,9 @@ public class ParameterDecodingHttpServletRequestWrapper extends HttpServletReque
     return parameter != null ? decode(parameter) : null;
   }
 
+  @SuppressWarnings("deprecation")
   private String decode(String parameter) {
-    try {
-      return URLDecoder.decode(parameter, "UTF-8");
-    } catch (UnsupportedEncodingException e) {
-      throw new RuntimeException(e);
-    }
+    return URLDecoder.decode(parameter);
   }
 
 
