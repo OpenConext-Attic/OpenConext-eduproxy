@@ -28,7 +28,7 @@ public class EduGainFeedParser {
 
     Map<String, String> serviceProviders = new HashMap<>();
     String entityId = null;
-    boolean isServiceProvider = true, isSigning = false;
+    boolean isServiceProvider = false, isSigning = false;
     while (reader.hasNext()) {
       switch (reader.next()) {
         case START_ELEMENT:

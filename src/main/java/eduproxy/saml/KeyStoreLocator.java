@@ -21,6 +21,16 @@ import java.util.Base64;
 
 public class KeyStoreLocator {
 
+  private static CertificateFactory certificateFactory;
+
+  static {
+    try {
+      certificateFactory = CertificateFactory.getInstance("X.509");
+    } catch (CertificateException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   public KeyStore createKeyStore(String pemPassPhrase) {
     try {
       KeyStore keyStore = KeyStore.getInstance("JKS");
@@ -39,8 +49,7 @@ public class KeyStoreLocator {
     byte[] decodedKey = Base64.getDecoder().decode(privateKey.getBytes());
 
     char[] passwordChars = password.toCharArray();
-    CertificateFactory certFact = CertificateFactory.getInstance("X.509");
-    Certificate cert = certFact.generateCertificate(new ByteArrayInputStream(wrappedCert.getBytes()));
+    Certificate cert = certificateFactory.generateCertificate(new ByteArrayInputStream(wrappedCert.getBytes()));
     ArrayList<Certificate> certs = new ArrayList<>();
     certs.add(cert);
 
@@ -54,7 +63,6 @@ public class KeyStoreLocator {
   public void addCertificate(KeyStore keyStore, String alias, String certificate) throws CertificateException, KeyStoreException {
     String wrappedCert = wrapCert(certificate);
     ByteArrayInputStream certificateInputStream = new ByteArrayInputStream(wrappedCert.getBytes());
-    CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
     Certificate cert = certificateFactory.generateCertificate(certificateInputStream);
     IOUtils.closeQuietly(certificateInputStream);
     keyStore.setCertificateEntry(alias, cert);
