@@ -84,7 +84,7 @@ are allowed to connect.
 
 ## [SAML metadata](#saml-metadata)
 
-The metadata is generated on the fly and is displayed on [http://localhost:8080/sp/metadata](http://localhost:8080/sp/metadata)
+The metadata is generated - and cached - on the fly and is displayed on [http://localhost:8080/sp/metadata](http://localhost:8080/sp/metadata)
 and [http://localhost:8080/idp/metadata](http://localhost:8080/idp/metadata)
 
 
