@@ -45,7 +45,7 @@ public class IdpMetadataController {
   @Autowired
   private CredentialResolver credentialResolver;
 
-  @Value("${sp.entity_id}")
+  @Value("${proxy.entity_id}")
   private String entityId;
 
   @RequestMapping(method = RequestMethod.GET, value = "/idp/metadata", produces = "application/xml")

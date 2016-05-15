@@ -10,7 +10,9 @@ import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.parse.XMLParserException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.io.ClassPathResource;
 
+import java.io.IOException;
 import java.util.List;
 
 import static org.junit.Assert.assertFalse;
@@ -22,10 +24,14 @@ public class ResourceMetadataProviderTest extends AbstractIntegrationTest {
   private MetadataProvider metadataProvider;
 
   @Test
-  public void test() throws MetadataProviderException, XMLParserException, ConfigurationException {
+  public void testDoGetMetadata() throws MetadataProviderException, XMLParserException, ConfigurationException {
     EntitiesDescriptor entitiesDescriptor = (EntitiesDescriptor) metadataProvider.getMetadata();
     List<EntityDescriptor> entityDescriptors = entitiesDescriptor.getEntityDescriptors();
     assertFalse( entityDescriptors.isEmpty());
   }
 
+  @Test(expected = MetadataProviderException.class)
+  public void testDoGetMetadataError() throws Exception {
+    new ResourceMetadataProvider(new ClassPathResource("bogus")).doGetMetadata();
+  }
 }

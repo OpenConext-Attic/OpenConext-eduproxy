@@ -47,7 +47,7 @@ public abstract class AbstractIntegrationTest {
   @Value("${local.server.port}")
   protected int port;
 
-  @Value("${sp.entity_id}")
+  @Value("${proxy.entity_id}")
   protected String entityId;
 
   @Autowired

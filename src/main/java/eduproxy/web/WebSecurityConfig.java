@@ -88,19 +88,19 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Value("${idp.certificate}")
   private String surfConextPublicCertificate;
 
-  @Value("${sp.base_url}")
+  @Value("${proxy.base_url}")
   private String serviceProviderBaseUrl;
 
-  @Value("${sp.entity_id}")
+  @Value("${proxy.entity_id}")
   private String serviceProviderEntityId;
 
-  @Value("${sp.private_key}")
+  @Value("${proxy.private_key}")
   private String serviceProviderPrivateKey;
 
-  @Value("${sp.certificate}")
+  @Value("${proxy.certificate}")
   private String serviceProviderCertificate;
 
-  @Value("${sp.passphrase}")
+  @Value("${proxy.passphrase}")
   private String serviceProviderPassphrase;
 
   @Bean
@@ -142,7 +142,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       .addFilterBefore(metadataGeneratorFilter(), ChannelProcessingFilter.class)
       .addFilterAfter(samlFilter(), BasicAuthenticationFilter.class)
       .authorizeRequests()
-      .antMatchers("/saml/idp/**", "/saml/metadata/**", "/saml/SSO/**", "/idp/metadata").permitAll()
+      .antMatchers("/saml/idp/**", "/sp/metadata", "/saml/SSO/**", "/idp/metadata").permitAll()
       .anyRequest().hasRole("USER")
       .and()
       .logout()
@@ -156,7 +156,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Bean
   public MetadataDisplayFilter metadataDisplayFilter() {
-    return new DefaultMetadataDisplayFilter();
+    DefaultMetadataDisplayFilter displayFilter = new DefaultMetadataDisplayFilter();
+    displayFilter.setFilterProcessesUrl("sp/metadata");
+    return displayFilter;
   }
 
   @Bean
@@ -195,7 +197,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     List<SecurityFilterChain> chains = new ArrayList<>();
     chains.add(chain("/saml/idp/**", identityProviderAuthnFilter()));
     chains.add(chain("/saml/login/**", samlEntryPoint()));
-    chains.add(chain("/saml/metadata/**", metadataDisplayFilter()));
+    chains.add(chain("/sp/metadata/**", metadataDisplayFilter()));
     chains.add(chain("/saml/SSO/**", samlWebSSOProcessingFilter()));
     return new FilterChainProxy(chains);
   }

@@ -10,7 +10,7 @@ public class DefaultMetadataDisplayFilterTest extends AbstractIntegrationTest{
 
   @Test
   public void testProcessMetadataDisplay() throws Exception {
-    String metadata = restTemplate.getForObject("http://localhost:" + port + "/saml/metadata", String.class);
+    String metadata = restTemplate.getForObject("http://localhost:" + port + "/sp/metadata", String.class);
     assertTrue(metadata.contains("entityID=\"https://eduproxy.localhost.surfconext.nl\""));
   }
 }
