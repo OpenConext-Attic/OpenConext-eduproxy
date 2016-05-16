@@ -12,11 +12,11 @@ import java.util.Map;
 
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
-public class EduGainFeedParser {
+public class ServiceProviderFeedParser {
 
   private final Resource resource;
 
-  public EduGainFeedParser(Resource resource) {
+  public ServiceProviderFeedParser(Resource resource) {
     this.resource = resource;
   }
 
@@ -41,24 +41,17 @@ public class EduGainFeedParser {
               isServiceProvider = true;
               break;
             case "KeyDescriptor":
-              String use = reader.getAttributeValue(null, "use");
-              isSigning = "signing".equals(use);
+              isSigning = "signing".equals(reader.getAttributeValue(null, "use"));
               break;
             case "X509Certificate": {
               if (isServiceProvider && isSigning) {
-                addEntity(entityId, reader.getElementText(), serviceProviders);
+                serviceProviders.put(entityId, reader.getElementText().replaceAll("\\s",""));
               }
             }
           }
       }
     }
     return serviceProviders;
-  }
-
-  private void addEntity(String entityId, String signature, Map<String, String> serviceProviders) {
-    if (StringUtils.hasText(signature)) {
-      serviceProviders.put(entityId, signature.replaceAll("\\s",""));
-    }
   }
 
 }

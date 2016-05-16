@@ -38,11 +38,12 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
   public void testProxy() throws Exception {
     String destination = "http://localhost:" + port + "/saml/idp";
 
-    String url = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty());
+    String url = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty(), true);
 
     //This mimics the AuthRequest from a SP to the eduProxy IDP endpoint
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
+    //This is the AuthnRequest from the eduProxy to the real IdP
     String saml = decodeSaml(response);
 
     assertTrue(saml.contains("AssertionConsumerServiceURL=\"http://localhost:8080/saml/SSO\""));
@@ -58,11 +59,12 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
     String now = date.format(DateTimeFormatter.ISO_INSTANT);
     String samlResponse = IOUtils.toString(new ClassPathResource("saml/eb.authnResponse.saml.xml").getInputStream());
 
-    //Make sure the all the validations pass. We don't sign as this is in dev modus not necessary
-    samlResponse = samlResponse.replaceAll("@@IssueInstant@@", now);
-    samlResponse = samlResponse.replaceAll("@@NotBefore@@", now);
-    samlResponse = samlResponse.replaceAll("@@NotOnOrAfter@@", date.plus(5, ChronoUnit.MINUTES).format(DateTimeFormatter.ISO_INSTANT));
-    samlResponse = samlResponse.replaceAll("@@InResponseTo@@", inResponseTo);
+    //Make sure the all the validations pass. We don't sign as this is in dev modus not necessary (and cumbersome)
+    samlResponse = samlResponse
+      .replaceAll("@@IssueInstant@@", now)
+      .replaceAll("@@NotBefore@@", now)
+      .replaceAll("@@NotOnOrAfter@@", date.plus(5, ChronoUnit.MINUTES).format(DateTimeFormatter.ISO_INSTANT))
+      .replaceAll("@@InResponseTo@@", inResponseTo);
 
     MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
     map.add("SAMLResponse", Base64.getEncoder().encodeToString(samlResponse.getBytes()));
@@ -76,7 +78,7 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
     assertAuthResponse(response);
 
     // now verify that we hit the cached principal
-    String secondUrl = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty());
+    String secondUrl = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty(), false);
 
     response = restTemplate.exchange(secondUrl, HttpMethod.GET, new HttpEntity<>(httpHeaders), String.class);
 
@@ -86,7 +88,7 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
     response = restTemplate.exchange("http://localhost:" + port + "/user", HttpMethod.GET, new HttpEntity<>(httpHeaders), String.class);
     String html = response.getBody();
 
-    assertEquals(200 , response.getStatusCode().value());
+    assertEquals(200, response.getStatusCode().value());
     assertTrue(html.contains("nameID"));
     assertTrue(html.contains("urn:collab:person:example.com:admin"));
     assertTrue(html.contains("j.doe@example.com"));
@@ -94,21 +96,40 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
 
   @Test
   public void testSAMLAuthenticationException() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
-    String url = samlRequestUtils.redirectUrl(entityId, "http://localhost:" + port + "/", Optional.empty());
+    String url = samlRequestUtils.redirectUrl(entityId, "http://localhost:" + port + "/", Optional.empty(), true);
     String mangledUrl = url.replaceFirst("&Signature[^&]+", "&Signature=bogus");
     ResponseEntity<String> response = restTemplate.getForEntity(mangledUrl, String.class);
 
+    String saml = getSAMLResponse(response);
+
+    assertTrue(saml.contains("Exception during validation of AuthnRequest (Error during signature verification)"));
+    assertFalse(saml.contains("Subject"));
+  }
+
+
+  @Test
+  public void testProxyWithoutSignature() throws Exception {
+    String destination = "http://localhost:" + port + "/saml/idp";
+
+    String url = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty(), false);
+    String withoutSignature = url.replaceFirst("&Signature[^&]+", "");
+
+    ResponseEntity<String> response = restTemplate.getForEntity(withoutSignature, String.class);
+
+    String saml = getSAMLResponse(response);
+
+    assertTrue(saml.contains("Signature required, but not present in authnRequest or request for https://eduproxy.localhost.surfconext.nl"));
+    assertFalse(saml.contains("Subject"));
+  }
+
+  private String getSAMLResponse(ResponseEntity<String> response) {
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
     Matcher matcher = Pattern.compile("name=\"SAMLResponse\" value=\"(.*?)\"").matcher(response.getBody());
     assertTrue(matcher.find());
 
-    String saml = new String(Base64.getDecoder().decode(matcher.group(1)));
-
-    assertTrue(saml.contains("Exception during validation of AuthnRequest"));
-    assertFalse(saml.contains("Subject"));
+    return new String(Base64.getDecoder().decode(matcher.group(1)));
   }
-
 
   private void assertAuthResponse(ResponseEntity<String> response) {
     String html;

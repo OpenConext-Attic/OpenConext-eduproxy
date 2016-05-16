@@ -75,8 +75,8 @@ idp.certificate=${copy & paste from the metadata}
 
 The Service Providers allowed to connect can be provided in a Metadata feed configured in ```application.yml```:
 
-```bash
-edugain:
+```yml
+serviceproviders:
   feed: http://mds.edugain.org/
 ```
 By default - but easily changed / overridden - only Service Providers with valid signing certificates in the SAML metadata

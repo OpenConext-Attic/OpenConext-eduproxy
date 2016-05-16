@@ -7,9 +7,9 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
-public class EduGainFeedParserTest {
+public class ServiceProviderFeedParserTest {
 
-  private EduGainFeedParser parser = new EduGainFeedParser(new ClassPathResource("saml/edugain.xml"));
+  private ServiceProviderFeedParser parser = new ServiceProviderFeedParser(new ClassPathResource("saml/edugain.xml"));
 
   @Test
   public void testParse() throws Exception {

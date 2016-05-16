@@ -5,8 +5,11 @@ import org.opensaml.Configuration;
 import org.opensaml.saml2.core.*;
 import org.opensaml.xml.XMLObject;
 import org.opensaml.xml.XMLObjectBuilderFactory;
+import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.schema.XSAny;
 import org.opensaml.xml.schema.XSString;
+import org.opensaml.xml.security.credential.Credential;
+import org.opensaml.xml.signature.*;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -116,6 +119,20 @@ public class SAMLBuilder {
 
     return assertion;
   }
+
+  public static void signAssertion(SignableXMLObject signableXMLObject, Credential signingCredential) throws MarshallingException, SignatureException {
+    Signature signature = buildSAMLObject(Signature.class, Signature.DEFAULT_ELEMENT_NAME);
+
+    signature.setSigningCredential(signingCredential);
+    signature.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1);
+    signature.setCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+
+    signableXMLObject.setSignature(signature);
+
+    Configuration.getMarshallerFactory().getMarshaller(signableXMLObject).marshall(signableXMLObject);
+    Signer.signObject(signature);
+  }
+
 
   public static Optional<String> getStringValueFromXMLObject(XMLObject xmlObj) {
     if (xmlObj instanceof XSString) {

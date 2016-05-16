@@ -1,7 +1,9 @@
 package eduproxy;
 
+import eduproxy.saml.SAMLBuilder;
 import org.joda.time.DateTime;
 import org.opensaml.common.binding.BasicSAMLMessageContext;
+import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.binding.encoding.HTTPRedirectDeflateEncoder;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Subject;
@@ -38,18 +40,25 @@ public class SAMLRequestUtils {
    * The OpenSAML API is very verbose..
    */
   @SuppressWarnings("unchecked")
-  public String redirectUrl(String entityName, String destination, Optional<String> userId) throws SecurityException, MessageEncodingException, SignatureException, MarshallingException, UnknownHostException {
+  public String redirectUrl(String entityId, String destination, Optional<String> userId, boolean includeSignature)
+      throws SecurityException, MessageEncodingException, SignatureException, MarshallingException, UnknownHostException {
     AuthnRequest authnRequest = buildSAMLObject(AuthnRequest.class, AuthnRequest.DEFAULT_ELEMENT_NAME);
     authnRequest.setID(UUID.randomUUID().toString());
     authnRequest.setIssueInstant(new DateTime());
     authnRequest.setDestination(destination);
     authnRequest.setAssertionConsumerServiceURL("http://localhost/acs");
 
-    authnRequest.setIssuer(buildIssuer(entityName));
+    authnRequest.setIssuer(buildIssuer(entityId));
 
     if (userId.isPresent()) {
       Subject subject = buildSubject(userId.get(), "http://localhost:8080", UUID.randomUUID().toString());
       authnRequest.setSubject(subject);
+    }
+
+    Credential signingCredential = keyManager.resolveSingle(new CriteriaSet(new EntityIDCriteria(entityId)));
+
+    if (includeSignature) {
+      signAssertion(authnRequest, signingCredential);
     }
 
     Endpoint endpoint = buildSAMLObject(Endpoint.class, SingleSignOnService.DEFAULT_ELEMENT_NAME);
@@ -58,19 +67,20 @@ public class SAMLRequestUtils {
     MockHttpServletResponse response = new MockHttpServletResponse();
     HttpServletResponseAdapter outTransport = new HttpServletResponseAdapter(response, false);
 
-    HTTPRedirectDeflateEncoder encoder = new HTTPRedirectDeflateEncoder();
+    HTTPRedirectDeflateEncoder encoder = new HTTPRedirectDeflateEncoder() {
+      @Override
+      protected void removeSignature(SAMLMessageContext messageContext) {
+        if (!includeSignature) {
+          super.removeSignature(messageContext);
+        }
+      }
+    };
 
     BasicSAMLMessageContext messageContext = new BasicSAMLMessageContext();
 
     messageContext.setOutboundMessageTransport(outTransport);
     messageContext.setPeerEntityEndpoint(endpoint);
     messageContext.setOutboundSAMLMessage(authnRequest);
-
-    CriteriaSet criteriaSet = new CriteriaSet();
-    criteriaSet.add(new EntityIDCriteria(entityName));
-    criteriaSet.add(new UsageCriteria(UsageType.SIGNING));
-
-    Credential signingCredential = keyManager.resolveSingle(criteriaSet);
 
     messageContext.setOutboundSAMLMessageSigningCredential(signingCredential);
 

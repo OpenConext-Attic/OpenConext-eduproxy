@@ -51,7 +51,6 @@ import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.channel.ChannelProcessingFilter;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -100,8 +99,11 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Value("${proxy.passphrase}")
   private String serviceProviderPassphrase;
 
-  @Value("${edugain.feed}")
-  private String edugainFeedUrl;
+  @Value("${serviceproviders.feed}")
+  private String serviceProvidersFeedUrl;
+
+  @Value("${serviceproviders.require_signing}")
+  private boolean signatureRequired;
 
   private DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader();
 
@@ -313,7 +315,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     keyStoreLocator.addPrivateKey(keyStore, serviceProviderEntityId, serviceProviderPrivateKey, serviceProviderCertificate, serviceProviderPassphrase);
     keyStoreLocator.addCertificate(keyStore, identityProviderEntityId, serviceProviderCertificate);
 
-    Map<String, String> serviceProviders = new EduGainFeedParser(defaultResourceLoader.getResource(edugainFeedUrl)).parse();
+    Map<String, String> serviceProviders = new ServiceProviderFeedParser(defaultResourceLoader.getResource(serviceProvidersFeedUrl)).parse();
     serviceProviders.entrySet().forEach(sp -> {
       try {
         keyStoreLocator.addCertificate(keyStore, sp.getKey(), sp.getValue());
@@ -380,7 +382,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       new HTTPRedirectDeflateDecoder(parserPool()),
       new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
       securityPolicyResolver(),
-      serviceProviderEntityId);
+      serviceProviderEntityId,
+      signatureRequired);
   }
 
   private SecurityPolicyResolver securityPolicyResolver() {
