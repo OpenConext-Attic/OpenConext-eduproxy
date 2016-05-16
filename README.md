@@ -80,7 +80,12 @@ serviceproviders:
   feed: http://mds.edugain.org/
 ```
 By default - but easily changed / overridden - only Service Providers with valid signing certificates in the SAML metadata
-are allowed to connect.
+are allowed to connect. See [ServiceProviderFeedParser](src/main/java/eduproxy/saml/ServiceProviderFeedParser.java).
+
+```yml
+serviceproviders:
+  require_signing: true
+```
 
 ## [SAML metadata](#saml-metadata)
 
