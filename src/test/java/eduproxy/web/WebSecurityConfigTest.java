@@ -84,7 +84,7 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
 
     assertAuthResponse(response);
 
-    //we can now call index
+    //we can now call user to introspect the Principal
     response = restTemplate.exchange("http://localhost:" + port + "/user", HttpMethod.GET, new HttpEntity<>(httpHeaders), String.class);
     String html = response.getBody();
 
@@ -100,12 +100,11 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
     String mangledUrl = url.replaceFirst("&Signature[^&]+", "&Signature=bogus");
     ResponseEntity<String> response = restTemplate.getForEntity(mangledUrl, String.class);
 
-    String saml = getSAMLResponse(response);
+    String saml = getSAMLResponseForError(response);
 
     assertTrue(saml.contains("Exception during validation of AuthnRequest (Error during signature verification)"));
     assertFalse(saml.contains("Subject"));
   }
-
 
   @Test
   public void testProxyWithoutSignature() throws Exception {
@@ -116,13 +115,13 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
 
     ResponseEntity<String> response = restTemplate.getForEntity(withoutSignature, String.class);
 
-    String saml = getSAMLResponse(response);
+    String saml = getSAMLResponseForError(response);
 
     assertTrue(saml.contains("Signature required, but not present in authnRequest or request for https://eduproxy.localhost.surfconext.nl"));
     assertFalse(saml.contains("Subject"));
   }
 
-  private String getSAMLResponse(ResponseEntity<String> response) {
+  private String getSAMLResponseForError(ResponseEntity<String> response) {
     assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
 
     Matcher matcher = Pattern.compile("name=\"SAMLResponse\" value=\"(.*?)\"").matcher(response.getBody());
