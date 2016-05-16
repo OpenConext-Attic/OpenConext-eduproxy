@@ -39,15 +39,12 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
 
     AuthnRequest authnRequest = (AuthnRequest) messageContext.getInboundSAMLMessage();
 
-    SAMLPrincipal principal = new SAMLPrincipal(
-      authnRequest.getIssuer().getValue(),
-      authnRequest.getID(),
-      authnRequest.getAssertionConsumerServiceURL(),
-      messageContext.getRelayState());
+    SAMLPrincipal principal = new SAMLPrincipal(authnRequest.getIssuer().getValue(), authnRequest.getID(),
+      authnRequest.getAssertionConsumerServiceURL(), messageContext.getRelayState());
 
     SecurityContextHolder.getContext().setAuthentication(new SAMLAuthentication(principal));
 
-    //redirect to login page will trigger the sending of AuthRequest to the IdP
+    //forward to login page will trigger the sending of AuthRequest to the IdP
     request.getRequestDispatcher("/saml/login").forward(request, response);
   }
 

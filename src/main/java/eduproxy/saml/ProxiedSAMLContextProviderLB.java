@@ -21,6 +21,7 @@ public class ProxiedSAMLContextProviderLB extends SAMLContextProviderLB {
     }
   }
 
+  //promoted public for testing purposes
   @Override
   public void populateGenericContext(HttpServletRequest request, HttpServletResponse response, SAMLMessageContext context) throws MetadataProviderException {
     super.populateGenericContext(request, response, context);
