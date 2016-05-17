@@ -30,7 +30,7 @@ import java.util.zip.InflaterInputStream;
 
 import static org.junit.Assert.*;
 
-public class AbstractWebSecurityConfigTest extends AbstractIntegrationTest {
+public abstract class AbstractWebSecurityConfigTest extends AbstractIntegrationTest {
 
   protected String entityId ="https://www.upsu.com/shibboleth";
 
