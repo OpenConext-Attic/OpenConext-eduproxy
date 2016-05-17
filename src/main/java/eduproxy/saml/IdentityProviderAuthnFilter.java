@@ -2,9 +2,6 @@ package eduproxy.saml;
 
 import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.core.AuthnRequest;
-import org.opensaml.ws.message.encoder.MessageEncodingException;
-import org.opensaml.xml.io.MarshallingException;
-import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -17,14 +14,18 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 
 
 public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements AuthenticationEntryPoint {
 
   private final SAMLMessageHandler samlMessageHandler;
+  private final Map<String, ServiceProvider> serviceProviders;
 
-  public IdentityProviderAuthnFilter(SAMLMessageHandler samlMessageHandler) {
+  public IdentityProviderAuthnFilter(SAMLMessageHandler samlMessageHandler,
+                                     Map<String, ServiceProvider> serviceProviders) {
     this.samlMessageHandler = samlMessageHandler;
+    this.serviceProviders = serviceProviders;
   }
 
   @Override
@@ -42,6 +43,8 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
     SAMLPrincipal principal = new SAMLPrincipal(authnRequest.getIssuer().getValue(), authnRequest.getID(),
       authnRequest.getAssertionConsumerServiceURL(), messageContext.getRelayState());
 
+    validateAssertionConsumerService(principal);
+
     SecurityContextHolder.getContext().setAuthentication(new SAMLAuthentication(principal));
 
     //forward to login page will trigger the sending of AuthRequest to the IdP
@@ -49,13 +52,28 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
   }
 
   @Override
-  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain) throws ServletException, IOException {
+  protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    throws ServletException, IOException {
     if (!SAMLUtil.processFilter("/saml/idp", request)) {
       chain.doFilter(request, response);
       return;
     }
     commence(request, response, null);
   }
+
+  private void validateAssertionConsumerService(SAMLPrincipal principal) {
+    ServiceProvider serviceProvider = serviceProviders.get(principal.getServiceProviderEntityID());
+    if (serviceProvider == null) {
+      throw new SAMLAuthenticationException("ServiceProvider " + principal.getServiceProviderEntityID() + " is unknown",
+        null, principal);
+    }
+    if (!serviceProvider.getAssertionConsumerServiceURLs().contains(principal.getAssertionConsumerServiceURL())) {
+      throw new SAMLAuthenticationException("ServiceProvider " + principal.getServiceProviderEntityID() + " has not published ACS "
+        + principal.getAssertionConsumerServiceURL() + " in their assertionConsumerURLS: " + serviceProvider.getAssertionConsumerServiceURLs(),
+        null, principal);
+    }
+  }
+
 
   private void sendAuthResponse(HttpServletResponse response) {
     SAMLPrincipal principal = (SAMLPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

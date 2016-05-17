@@ -1,15 +1,17 @@
 package eduproxy.saml;
 
 import org.springframework.core.io.Resource;
-import org.springframework.util.StringUtils;
 
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import static javax.xml.stream.XMLStreamConstants.END_ELEMENT;
 import static javax.xml.stream.XMLStreamConstants.START_ELEMENT;
 
 public class ServiceProviderFeedParser {
@@ -20,22 +22,24 @@ public class ServiceProviderFeedParser {
     this.resource = resource;
   }
 
-  public Map<String, String> parse() throws IOException, XMLStreamException {
+  public Map<String, ServiceProvider> parse() throws IOException, XMLStreamException {
     //despite it's name, the XMLInputFactoryImpl is not thread safe
     XMLInputFactory factory = XMLInputFactory.newInstance();
 
     XMLStreamReader reader = factory.createXMLStreamReader(resource.getInputStream());
 
-    Map<String, String> serviceProviders = new HashMap<>();
-    String entityId = null;
+    Map<String, ServiceProvider> serviceProviders = new HashMap<>();
+
+    String entityId = null, signingCertificate = null;
     boolean isServiceProvider = false, isSigning = false;
+    List<String> assertionConsumerServiceURLs = null;
+
     while (reader.hasNext()) {
       switch (reader.next()) {
         case START_ELEMENT:
           switch (reader.getLocalName()) {
             case "EntityDescriptor":
               entityId = reader.getAttributeValue(null, "entityID");
-              isServiceProvider = false;
               break;
             case "SPSSODescriptor":
               isServiceProvider = true;
@@ -43,12 +47,31 @@ public class ServiceProviderFeedParser {
             case "KeyDescriptor":
               isSigning = "signing".equals(reader.getAttributeValue(null, "use"));
               break;
-            case "X509Certificate": {
+            case "X509Certificate":
               if (isServiceProvider && isSigning) {
-                serviceProviders.put(entityId, reader.getElementText().replaceAll("\\s",""));
+                signingCertificate = reader.getElementText().replaceAll("\\s", "");
               }
-            }
+              break;
+            case "AssertionConsumerService":
+              if (isServiceProvider) {
+                if (assertionConsumerServiceURLs == null) {
+                  assertionConsumerServiceURLs = new ArrayList<>();
+                }
+                assertionConsumerServiceURLs.add(reader.getAttributeValue(null, "Location"));
+              }
+              break;
           }
+          break;
+        case END_ELEMENT:
+          if (reader.getLocalName().equals("EntityDescriptor") && isServiceProvider) {
+            serviceProviders.put(entityId, new ServiceProvider(entityId, signingCertificate, assertionConsumerServiceURLs));
+            entityId = null;
+            signingCertificate = null;
+            isServiceProvider = false;
+            isSigning = false;
+            assertionConsumerServiceURLs = null;
+          }
+          break;
       }
     }
     return serviceProviders;

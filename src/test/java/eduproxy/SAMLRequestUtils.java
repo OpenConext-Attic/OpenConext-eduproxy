@@ -40,13 +40,13 @@ public class SAMLRequestUtils {
    * The OpenSAML API is very verbose..
    */
   @SuppressWarnings("unchecked")
-  public String redirectUrl(String entityId, String destination, Optional<String> userId, boolean includeSignature)
+  public String redirectUrl(String entityId, String destination, String acs, Optional<String> userId, boolean includeSignature)
       throws SecurityException, MessageEncodingException, SignatureException, MarshallingException, UnknownHostException {
     AuthnRequest authnRequest = buildSAMLObject(AuthnRequest.class, AuthnRequest.DEFAULT_ELEMENT_NAME);
     authnRequest.setID(UUID.randomUUID().toString());
     authnRequest.setIssueInstant(new DateTime());
     authnRequest.setDestination(destination);
-    authnRequest.setAssertionConsumerServiceURL("http://localhost/acs");
+    authnRequest.setAssertionConsumerServiceURL(acs);
 
     authnRequest.setIssuer(buildIssuer(entityId));
 
@@ -57,7 +57,8 @@ public class SAMLRequestUtils {
 
     Credential signingCredential = keyManager.resolveSingle(new CriteriaSet(new EntityIDCriteria(entityId)));
 
-    if (includeSignature) {
+    boolean includeSigning = includeSignature && signingCredential.getPrivateKey() != null;
+    if (includeSigning) {
       signAssertion(authnRequest, signingCredential);
     }
 
@@ -82,7 +83,9 @@ public class SAMLRequestUtils {
     messageContext.setPeerEntityEndpoint(endpoint);
     messageContext.setOutboundSAMLMessage(authnRequest);
 
-    messageContext.setOutboundSAMLMessageSigningCredential(signingCredential);
+    if (includeSigning) {
+      messageContext.setOutboundSAMLMessageSigningCredential(signingCredential);
+    }
 
     messageContext.setRelayState(null);
 

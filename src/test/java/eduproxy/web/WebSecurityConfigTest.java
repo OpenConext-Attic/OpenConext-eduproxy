@@ -1,44 +1,45 @@
 package eduproxy.web;
 
 
-import eduproxy.AbstractIntegrationTest;
 import org.apache.commons.io.IOUtils;
 import org.junit.Test;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.signature.SignatureException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
-import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.zip.Inflater;
-import java.util.zip.InflaterInputStream;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class WebSecurityConfigTest extends AbstractIntegrationTest {
+public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
+
+  @Value("${proxy.acs_location}")
+  private String serviceProviderACSLocation;
+
+  @Value("${proxy.entity_id}")
+  private String serviceProviderEntityId;
 
   @Test
   public void testProxy() throws Exception {
     String destination = "http://localhost:" + port + "/saml/idp";
 
-    String url = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty(), true);
+    String url = samlRequestUtils.redirectUrl(entityId, destination,
+      acsLocation, Optional.empty(), true);
 
     //This mimics the AuthRequest from a SP to the eduProxy IDP endpoint
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
@@ -78,7 +79,7 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
     assertAuthResponse(response);
 
     // now verify that we hit the cached principal
-    String secondUrl = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty(), false);
+    String secondUrl = samlRequestUtils.redirectUrl(entityId, destination, acsLocation, Optional.empty(), false);
 
     response = restTemplate.exchange(secondUrl, HttpMethod.GET, new HttpEntity<>(httpHeaders), String.class);
 
@@ -95,59 +96,35 @@ public class WebSecurityConfigTest extends AbstractIntegrationTest {
   }
 
   @Test
-  public void testSAMLAuthenticationException() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
-    String url = samlRequestUtils.redirectUrl(entityId, "http://localhost:" + port + "/", Optional.empty(), true);
+  public void testInvalidSignature() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
+    String url = samlRequestUtils.redirectUrl(serviceProviderEntityId, "http://localhost:" + port + "/saml/idp", serviceProviderACSLocation, Optional.empty(), true);
     String mangledUrl = url.replaceFirst("&Signature[^&]+", "&Signature=bogus");
-    ResponseEntity<String> response = restTemplate.getForEntity(mangledUrl, String.class);
 
-    String saml = getSAMLResponseForError(response);
-
-    assertTrue(saml.contains("Exception during validation of AuthnRequest (Error during signature verification)"));
-    assertFalse(saml.contains("Subject"));
+    doAssertInvalidResponse("Exception during validation of AuthnRequest (Error during signature verification)", mangledUrl);
   }
 
   @Test
-  public void testProxyWithoutSignature() throws Exception {
-    String destination = "http://localhost:" + port + "/saml/idp";
+  public void testInvalidACS() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
+    assertInvalidResponse(entityId, "http://bogus", "ServiceProvider " + entityId + " has not published ACS ");
+  }
 
-    String url = samlRequestUtils.redirectUrl(entityId, destination, Optional.empty(), false);
-    String withoutSignature = url.replaceFirst("&Signature[^&]+", "");
+  @Test
+  public void testInvalidEntityID() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
+    String url = samlRequestUtils.redirectUrl("http://bogus", "http://localhost:" + port + "/", acsLocation, Optional.empty(), false);
+    doAssertInvalidResponse( "ServiceProvider http://bogus is unknown", url);
+  }
 
-    ResponseEntity<String> response = restTemplate.getForEntity(withoutSignature, String.class);
+  private void assertInvalidResponse(String entity, String acs, String expectedErrorMessage) throws SecurityException, MessageEncodingException, SignatureException, MarshallingException, UnknownHostException {
+    String url = samlRequestUtils.redirectUrl(entity, "http://localhost:" + port + "/", acs, Optional.empty(), true);
+    doAssertInvalidResponse(expectedErrorMessage, url);
+  }
+
+  private void doAssertInvalidResponse(String expectedErrorMessage, String url) {
+    ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
 
     String saml = getSAMLResponseForError(response);
 
-    assertTrue(saml.contains("Signature required, but not present in authnRequest or request for https://eduproxy.localhost.surfconext.nl"));
+    assertTrue(saml.contains(expectedErrorMessage));
     assertFalse(saml.contains("Subject"));
   }
-
-  private String getSAMLResponseForError(ResponseEntity<String> response) {
-    assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-
-    Matcher matcher = Pattern.compile("name=\"SAMLResponse\" value=\"(.*?)\"").matcher(response.getBody());
-    assertTrue(matcher.find());
-
-    return new String(Base64.getDecoder().decode(matcher.group(1)));
-  }
-
-  private void assertAuthResponse(ResponseEntity<String> response) {
-    String html;
-    assertEquals(200, response.getStatusCode().value());
-
-    html = response.getBody();
-
-    assertTrue(html.contains("<input type=\"hidden\" name=\"SAMLResponse\""));
-    assertTrue(html.contains("<body onload=\"document.forms[0].submit()\">"));
-  }
-
-  private String decodeSaml(ResponseEntity<String> response) throws URISyntaxException, IOException {
-    String location = response.getHeaders().getLocation().toString();
-
-    Map<String, String> queryParameters = queryParameters(location);
-    byte[] decodedBytes = Base64.getDecoder().decode(queryParameters.get("SAMLRequest"));
-
-    return IOUtils.toString(new InflaterInputStream(new ByteArrayInputStream(decodedBytes), new Inflater(true)));
-  }
-
-
 }

@@ -47,6 +47,9 @@ public class IdpMetadataController {
   @Value("${proxy.entity_id}")
   private String entityId;
 
+  @Value("${proxy.validity_duration_metadata_ms}")
+  private int validityDurationMetadataMilliseconds;
+
   @RequestMapping(method = RequestMethod.GET, value = "/idp/metadata", produces = "application/xml")
   public String metadata() throws SecurityException, ParserConfigurationException, SignatureException, MarshallingException, TransformerException {
     if (metadata == null || this.validUntil.isBeforeNow()) {
@@ -56,7 +59,7 @@ public class IdpMetadataController {
   }
 
   private String generateMetadata() throws SecurityException, SignatureException, MarshallingException, ParserConfigurationException, TransformerException {
-    this.validUntil = new DateTime().plusDays(1);
+    this.validUntil = new DateTime().plusMillis(validityDurationMetadataMilliseconds);
 
     EntityDescriptor entityDescriptor = buildSAMLObject(EntityDescriptor.class, EntityDescriptor.DEFAULT_ELEMENT_NAME);
     entityDescriptor.setEntityID(entityId);

@@ -67,6 +67,8 @@ import java.security.cert.CertificateException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.*;
 
+import static java.util.Collections.singletonList;
+
 @Configuration
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(securedEnabled = true)
@@ -99,6 +101,9 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Value("${proxy.passphrase}")
   private String serviceProviderPassphrase;
 
+  @Value("${proxy.acs_location}")
+  private String serviceProviderACSLocation;
+
   @Value("${serviceproviders.feed}")
   private String serviceProvidersFeedUrl;
 
@@ -106,6 +111,8 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   private boolean signatureRequired;
 
   private DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader();
+
+  private Map<String, ServiceProvider> serviceProviders;
 
   @Bean
   public SAMLAuthenticationProvider samlAuthenticationProvider() {
@@ -198,7 +205,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Bean
   public IdentityProviderAuthnFilter identityProviderAuthnFilter() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException {
-    return new IdentityProviderAuthnFilter(samlMessageHandler());
+    return new IdentityProviderAuthnFilter(samlMessageHandler(), serviceProviders);
   }
 
   private DefaultSecurityFilterChain chain(String pattern, Filter entryPoint) {
@@ -315,15 +322,29 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     keyStoreLocator.addPrivateKey(keyStore, serviceProviderEntityId, serviceProviderPrivateKey, serviceProviderCertificate, serviceProviderPassphrase);
     keyStoreLocator.addCertificate(keyStore, identityProviderEntityId, serviceProviderCertificate);
 
-    Map<String, String> serviceProviders = new ServiceProviderFeedParser(defaultResourceLoader.getResource(serviceProvidersFeedUrl)).parse();
+    this.serviceProviders = getServiceProviders();
     serviceProviders.entrySet().forEach(sp -> {
       try {
-        keyStoreLocator.addCertificate(keyStore, sp.getKey(), sp.getValue());
+        ServiceProvider serviceProvider = sp.getValue();
+        if (serviceProvider.isSigningCertificateSigned() && !serviceProvider.getEntityId().equals(serviceProviderEntityId)) {
+          keyStoreLocator.addCertificate(keyStore, sp.getKey(), serviceProvider.getSigningCertificate());
+        }
       } catch (CertificateException | KeyStoreException e) {
         throw new RuntimeException(e);
       }
     });
     return new JKSKeyManager(keyStore, Collections.singletonMap(serviceProviderEntityId, serviceProviderPassphrase), serviceProviderEntityId);
+  }
+
+  private Map<String, ServiceProvider> getServiceProviders() throws IOException, XMLStreamException {
+    //expensive and we don't want the serviceProviders as @Bean
+    if (this.serviceProviders == null) {
+      this.serviceProviders = new ServiceProviderFeedParser(defaultResourceLoader.getResource(serviceProvidersFeedUrl)).parse();
+    }
+    if (environment.acceptsProfiles("dev")) {
+      this.serviceProviders.put(serviceProviderEntityId, new ServiceProvider(serviceProviderEntityId, serviceProviderCertificate, singletonList(serviceProviderACSLocation)));
+    }
+    return this.serviceProviders;
   }
 
   private ArtifactResolutionProfile artifactResolutionProfile() {

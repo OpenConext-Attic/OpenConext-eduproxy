@@ -2,8 +2,9 @@ package eduproxy.saml;
 
 import org.opensaml.common.binding.BasicSAMLMessageContext;
 import org.opensaml.saml2.core.AuthnRequest;
+import org.springframework.security.core.AuthenticationException;
 
-public class SAMLAuthenticationException extends RuntimeException {
+public class SAMLAuthenticationException extends AuthenticationException {
 
   private final SAMLPrincipal principal;
 
