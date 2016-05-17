@@ -19,7 +19,7 @@ import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
 
-@WebIntegrationTest(value = {"server.port=0", "proxy.validity_duration_metadata_ms=10"})
+@WebIntegrationTest(value = {"server.port=0", "proxy.validity_duration_metadata_ms=1"})
 public class IdpMetadataControllerTest extends AbstractIntegrationTest {
 
   @Test
@@ -33,7 +33,7 @@ public class IdpMetadataControllerTest extends AbstractIntegrationTest {
     assertTrue(xml.contains("entityID=\"https://eduproxy.localhost.surfconext.nl\""));
 
     //force cache evict
-    Thread.sleep(500);
+    //Thread.sleep(500);
 
     xml = restTemplate.getForEntity("http://localhost:" + port + "/idp/metadata", String.class).getBody();
     Matcher matcher = Pattern.compile("validUntil=\"(.*?)\"").matcher(xml);
