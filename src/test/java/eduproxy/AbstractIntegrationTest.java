@@ -44,7 +44,7 @@ public abstract class AbstractIntegrationTest {
 
   @BeforeClass
   public static void beforeClass() throws ConfigurationException {
-    DefaultBootstrap.bootstrap();
+    //DefaultBootstrap.bootstrap();
   }
 
   @Before
