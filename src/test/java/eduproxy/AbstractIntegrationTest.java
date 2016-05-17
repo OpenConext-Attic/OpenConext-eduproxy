@@ -42,11 +42,6 @@ public abstract class AbstractIntegrationTest {
 
   protected SAMLRequestUtils samlRequestUtils;
 
-  @BeforeClass
-  public static void beforeClass() throws ConfigurationException {
-    //DefaultBootstrap.bootstrap();
-  }
-
   @Before
   public void before() throws IOException {
     samlRequestUtils = new SAMLRequestUtils(keyManager);
