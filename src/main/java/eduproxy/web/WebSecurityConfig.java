@@ -107,9 +107,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Value("${serviceproviders.feed}")
   private String serviceProvidersFeedUrl;
 
-  @Value("${serviceproviders.require_signing}")
-  private boolean signatureRequired;
-
   private DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader();
 
   private Map<String, ServiceProvider> serviceProviders;
@@ -403,8 +400,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       new HTTPRedirectDeflateDecoder(parserPool()),
       new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
       securityPolicyResolver(),
-      serviceProviderEntityId,
-      signatureRequired);
+      serviceProviderEntityId);
   }
 
   private SecurityPolicyResolver securityPolicyResolver() {

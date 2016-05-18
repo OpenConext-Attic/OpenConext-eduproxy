@@ -19,7 +19,7 @@ idp:
 
 serviceproviders:
   feed: classpath:saml/edugain.xml
-  require_signing: false
+#  feed: http://mds.edugain.org/
 
 # eduProxy
 proxy:

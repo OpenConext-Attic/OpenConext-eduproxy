@@ -45,19 +45,17 @@ public class SAMLMessageHandler {
   private final SAMLMessageDecoder decoder;
   private final SecurityPolicyResolver resolver;
   private final String entityId;
-  private final boolean signatureRequired;
 
   private final List<ValidatorSuite> validatorSuites;
 
   public SAMLMessageHandler(KeyManager keyManager, SAMLMessageDecoder samlMessageDecoder,
                             SAMLMessageEncoder samlMessageEncoder, SecurityPolicyResolver securityPolicyResolver,
-                            String entityId, boolean signatureRequired) {
+                            String entityId) {
     this.keyManager = keyManager;
     this.encoder = samlMessageEncoder;
     this.decoder = samlMessageDecoder;
     this.resolver = securityPolicyResolver;
     this.entityId = entityId;
-    this.signatureRequired = signatureRequired;
     this.validatorSuites = asList(
       getValidatorSuite("saml2-core-schema-validator"),
       getValidatorSuite("saml2-core-spec-validator"));
@@ -82,7 +80,7 @@ public class SAMLMessageHandler {
 
     AuthnRequest authnRequest = (AuthnRequest) inboundSAMLMessage;
     try {
-      validate(request, authnRequest, signatureRequired);
+      validate(request, authnRequest);
     } catch (ValidationException | SecurityException e) {
       throw new SAMLAuthenticationException("Exception during validation of AuthnRequest (" + e.getMessage() + ")", e, messageContext);
     }
@@ -139,13 +137,10 @@ public class SAMLMessageHandler {
     encoder.encode(messageContext);
   }
 
-  private void validate(HttpServletRequest request, AuthnRequest authnRequest, boolean signatureRequired) throws ValidationException, SecurityException {
+  private void validate(HttpServletRequest request, AuthnRequest authnRequest) throws ValidationException, SecurityException {
     validateXMLObject(authnRequest);
-    boolean signaturePresent = validateSignature(authnRequest);
-    boolean rawSignaturePresent = validateRawSignature(request, authnRequest.getIssuer().getValue());
-    if (signatureRequired && !(signaturePresent || rawSignaturePresent)) {
-      throw new SecurityException("Signature required, but not present in authnRequest or request for " + authnRequest.getIssuer().getValue());
-    }
+    validateSignature(authnRequest);
+    validateRawSignature(request, authnRequest.getIssuer().getValue());
   }
 
   private void validateXMLObject(XMLObject xmlObject) throws ValidationException {
@@ -155,30 +150,28 @@ public class SAMLMessageHandler {
     }
   }
 
-  private boolean validateRawSignature(HttpServletRequest request, String issuer) throws SecurityException {
+  private void validateRawSignature(HttpServletRequest request, String issuer) throws SecurityException {
     String base64signature = request.getParameter("Signature");
     String sigAlg = request.getParameter("SigAlg");
     if (base64signature == null || sigAlg == null) {
-      return false;
+      return;
     }
     byte[] input = request.getQueryString().replaceFirst("&Signature[^&]+", "").getBytes();
     byte[] signature = Base64.decode(base64signature);
 
     Credential credential = resolveCredential(issuer);
     SigningUtil.verifyWithURI(credential, sigAlg, signature, input);
-    return true;
   }
 
-  private boolean validateSignature(AuthnRequest authnRequest) throws ValidationException {
+  private void validateSignature(AuthnRequest authnRequest) throws ValidationException {
     Signature signature = authnRequest.getSignature();
     if (signature == null) {
-      return false;
+      return ;
     }
     new SAMLSignatureProfileValidator().validate(signature);
     String issuer = authnRequest.getIssuer().getValue();
     Credential credential = resolveCredential(issuer);
     new SignatureValidator(credential).validate(signature);
-    return true;
   }
 
   private Credential resolveCredential(String entityId) {

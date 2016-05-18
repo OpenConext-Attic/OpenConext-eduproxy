@@ -79,18 +79,20 @@ The Service Providers allowed to connect can be provided in a Metadata feed conf
 serviceproviders:
   feed: http://mds.edugain.org/
 ```
-By default - but easily changed / overridden - only Service Providers with valid signing certificates in the SAML metadata
+By default - but easily changed / overridden - all Service Providers in the SAML metadata feed
 are allowed to connect. See [ServiceProviderFeedParser](src/main/java/eduproxy/saml/ServiceProviderFeedParser.java).
-
-```yml
-serviceproviders:
-  require_signing: true
-```
 
 ## [SAML metadata](#saml-metadata)
 
-The metadata is generated - and cached - on the fly and is displayed on [http://localhost:8080/sp/metadata](http://localhost:8080/sp/metadata)
-and [http://localhost:8080/idp/metadata](http://localhost:8080/idp/metadata)
+The eduProxy metadata is generated and accessible on [http://localhost:8080/sp/metadata](http://localhost:8080/sp/metadata)
+and [http://localhost:8080/idp/metadata](http://localhost:8080/idp/metadata). The metadata is cached and refreshed every 24 hours. This
+can be configured:
+
+```yml
+proxy:
+  # duration of metadata cache (1 day)
+  validity_duration_metadata_ms: 86400000
+```
 
 
 
