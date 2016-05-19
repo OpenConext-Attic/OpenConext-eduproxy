@@ -53,12 +53,10 @@ public class ServiceProviderFeedParser {
               }
               break;
             case "AssertionConsumerService":
-              if (isServiceProvider) {
-                if (assertionConsumerServiceURLs == null) {
-                  assertionConsumerServiceURLs = new ArrayList<>();
-                }
-                assertionConsumerServiceURLs.add(reader.getAttributeValue(null, "Location"));
+              if (assertionConsumerServiceURLs == null) {
+                assertionConsumerServiceURLs = new ArrayList<>();
               }
+              assertionConsumerServiceURLs.add(reader.getAttributeValue(null, "Location"));
               break;
           }
           break;

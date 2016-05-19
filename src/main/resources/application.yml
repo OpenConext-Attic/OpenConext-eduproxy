@@ -3,7 +3,7 @@ logging:
   config: classpath:logback.xml
   level:
     ps: DEBUG
-#    org.springframework: DEBUG
+    org.springframework.security: DEBUG
 
 server:
   # The port to where this Spring Boot application listens to. e.g. http://localhost:{{ springapp_tcpport }}

@@ -7,6 +7,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml.util.SAMLUtil;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -32,6 +33,16 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
   public void commence(HttpServletRequest request, HttpServletResponse response, AuthenticationException authException) throws IOException, ServletException {
     if (authenticationNotRequired()) {
       sendAuthResponse(response);
+      return;
+    }
+
+    if (!isSAML(request) ) {
+      if (!request.getRequestURI().contains("test")) {
+        throw new IllegalArgumentException("No SAMLRequest or SAMLResponse query path parameter, invalid SAML 2 HTTP Redirect message");
+      }
+      //sendAuthnRequest to EB
+      SecurityContextHolder.getContext().setAuthentication(new SAMLAuthentication(new NoProxySAMLPrincipal()));
+      request.getRequestDispatcher("/saml/login").forward(request, response);
       return;
     }
 
@@ -83,6 +94,12 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
   private boolean authenticationNotRequired() {
     Authentication existingAuth = SecurityContextHolder.getContext().getAuthentication();
     return existingAuth != null && existingAuth.getPrincipal() instanceof SAMLPrincipal && existingAuth.isAuthenticated();
+  }
+
+  private boolean isSAML(HttpServletRequest request) {
+    return StringUtils.hasText(request.getParameter("SAMLResponse"))
+      || StringUtils.hasText(request.getParameter("SAMLRequest"));
+
   }
 
 }

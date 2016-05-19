@@ -13,6 +13,7 @@ import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -50,22 +51,7 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
     assertTrue(saml.contains("AssertionConsumerServiceURL=\"http://localhost:8080/saml/SSO\""));
     assertTrue(saml.contains("Destination=\"https://engine.test.surfconext.nl/authentication/idp/single-sign-on\""));
 
-    Matcher matcher = Pattern.compile("ID=\"(.*?)\"").matcher(saml);
-    assertTrue(matcher.find());
-
-    //We need the ID of the original request to mimic the real IdP authnResponse
-    String inResponseTo = matcher.group(1);
-
-    ZonedDateTime date = ZonedDateTime.now();
-    String now = date.format(DateTimeFormatter.ISO_INSTANT);
-    String samlResponse = IOUtils.toString(new ClassPathResource("saml/eb.authnResponse.saml.xml").getInputStream());
-
-    //Make sure the all the validations pass. We don't sign as this is in dev modus not necessary (and cumbersome)
-    samlResponse = samlResponse
-      .replaceAll("@@IssueInstant@@", now)
-      .replaceAll("@@NotBefore@@", now)
-      .replaceAll("@@NotOnOrAfter@@", date.plus(5, ChronoUnit.MINUTES).format(DateTimeFormatter.ISO_INSTANT))
-      .replaceAll("@@InResponseTo@@", inResponseTo);
+    String samlResponse = getIdPSAMLResponse(saml);
 
     MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
     map.add("SAMLResponse", Base64.getEncoder().encodeToString(samlResponse.getBytes()));
@@ -104,6 +90,35 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
   }
 
   @Test
+  public void testProxyTestEndpoint() throws Exception {
+    ResponseEntity<String> response = restTemplate.getForEntity("http://localhost:" + port + "/test", String.class);
+
+    //This is the AuthnRequest from the eduProxy to the real IdP
+    String saml = decodeSaml(response);
+
+    assertTrue(saml.contains("AssertionConsumerServiceURL=\"http://localhost:8080/saml/SSO\""));
+    assertTrue(saml.contains("Destination=\"https://engine.test.surfconext.nl/authentication/idp/single-sign-on\""));
+
+    String samlResponse = getIdPSAMLResponse(saml);
+
+    MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
+    map.add("SAMLResponse", Base64.getEncoder().encodeToString(samlResponse.getBytes()));
+
+    HttpHeaders httpHeaders = buildCookieHeaders(response);
+
+    // now mimic a response from the real IdP with a valid AuthnResponse and the correct cookie header
+    HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(map, httpHeaders);
+    response = restTemplate.exchange("http://localhost:" + port + "/saml/SSO", HttpMethod.POST, httpEntity, String.class);
+
+    assertEquals(200, response.getStatusCode().value());
+
+    String html = response.getBody();
+    assertTrue(html.contains("nameID"));
+    assertTrue(html.contains("urn:collab:person:example.com:admin"));
+    assertTrue(html.contains("j.doe@example.com"));
+  }
+
+  @Test
   public void testInvalidACS() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
     assertInvalidResponse(entityId, "http://bogus", "ServiceProvider " + entityId + " has not published ACS ");
   }
@@ -111,7 +126,33 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
   @Test
   public void testInvalidEntityID() throws UnknownHostException, SecurityException, SignatureException, MarshallingException, MessageEncodingException {
     String url = samlRequestUtils.redirectUrl("http://bogus", "http://localhost:" + port + "/", acsLocation, Optional.empty(), false);
-    doAssertInvalidResponse( "ServiceProvider http://bogus is unknown", url);
+    doAssertInvalidResponse("ServiceProvider http://bogus is unknown", url);
+  }
+
+  @Test
+  public void testNoSAML() throws Exception {
+    ResponseEntity<String> response = restTemplate.getForEntity("http://localhost:" + port + "/bogus", String.class);
+    assertEquals(403, response.getStatusCode().value());
+  }
+
+  private String getIdPSAMLResponse(String saml) throws IOException {
+    Matcher matcher = Pattern.compile("ID=\"(.*?)\"").matcher(saml);
+    assertTrue(matcher.find());
+
+    //We need the ID of the original request to mimic the real IdP authnResponse
+    String inResponseTo = matcher.group(1);
+
+    ZonedDateTime date = ZonedDateTime.now();
+    String now = date.format(DateTimeFormatter.ISO_INSTANT);
+    String samlResponse = IOUtils.toString(new ClassPathResource("saml/eb.authnResponse.saml.xml").getInputStream());
+
+    //Make sure the all the validations pass. We don't sign as this is in dev modus not necessary (and cumbersome)
+    samlResponse = samlResponse
+      .replaceAll("@@IssueInstant@@", now)
+      .replaceAll("@@NotBefore@@", now)
+      .replaceAll("@@NotOnOrAfter@@", date.plus(5, ChronoUnit.MINUTES).format(DateTimeFormatter.ISO_INSTANT))
+      .replaceAll("@@InResponseTo@@", inResponseTo);
+    return samlResponse;
   }
 
   private void assertInvalidResponse(String entity, String acs, String expectedErrorMessage) throws SecurityException, MessageEncodingException, SignatureException, MarshallingException, UnknownHostException {
