@@ -240,23 +240,13 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean(initMethod = "initialize")
-  public StaticBasicParserPool parserPool() {
+  public ParserPool parserPool() {
     return new StaticBasicParserPool();
   }
 
   @Bean(name = "parserPoolHolder")
   public ParserPoolHolder parserPoolHolder() {
     return new ParserPoolHolder();
-  }
-
-  @Bean
-  public MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager() {
-    return new MultiThreadedHttpConnectionManager();
-  }
-
-  @Bean
-  public HttpClient httpClient() {
-    return new HttpClient(multiThreadedHttpConnectionManager());
   }
 
   @Bean
@@ -308,55 +298,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       this.serviceProviders.put(eduProxyEntityId, new ServiceProvider(eduProxyEntityId, eduProxyCertificate, singletonList(eduProxyACSLocation)));
     }
     return this.serviceProviders;
-  }
-
-  private ArtifactResolutionProfile artifactResolutionProfile() {
-    final ArtifactResolutionProfileImpl artifactResolutionProfile = new ArtifactResolutionProfileImpl(httpClient());
-    artifactResolutionProfile.setProcessor(new SAMLProcessorImpl(soapBinding()));
-    return artifactResolutionProfile;
-  }
-
-  @Bean
-  public HTTPArtifactBinding artifactBinding(ParserPool parserPool, VelocityEngine velocityEngine) {
-    return new HTTPArtifactBinding(parserPool, velocityEngine, artifactResolutionProfile());
-  }
-
-  @Bean
-  public HTTPSOAP11Binding soapBinding() {
-    return new HTTPSOAP11Binding(parserPool());
-  }
-
-  @Bean
-  public HTTPPostBinding httpPostBinding() {
-    ParserPool parserPool = parserPool();
-    HTTPPostEncoder encoder = new HTTPPostEncoder(velocityEngine(), "/templates/saml2-post-binding.vm");
-    return new HTTPPostBinding(parserPool, new HTTPPostDecoder(parserPool), encoder);
-  }
-
-  @Bean
-  public HTTPRedirectDeflateBinding httpRedirectDeflateBinding() {
-    return new HTTPRedirectDeflateBinding(parserPool());
-  }
-
-  @Bean
-  public HTTPSOAP11Binding httpSOAP11Binding() {
-    return new HTTPSOAP11Binding(parserPool());
-  }
-
-  @Bean
-  public HTTPPAOS11Binding httpPAOS11Binding() {
-    return new HTTPPAOS11Binding(parserPool());
-  }
-
-  @Bean
-  public SAMLProcessorImpl processor() {
-    Collection<SAMLBinding> bindings = new ArrayList<>();
-    bindings.add(httpRedirectDeflateBinding());
-    bindings.add(httpPostBinding());
-    bindings.add(artifactBinding(parserPool(), velocityEngine()));
-    bindings.add(httpSOAP11Binding());
-    bindings.add(httpPAOS11Binding());
-    return new SAMLProcessorImpl(bindings);
   }
 
   @Bean
