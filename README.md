@@ -55,7 +55,7 @@ serviceproviders:
 ```
 
 When developing locally or deploying in a test environment eduProxy can be configured to allow any SP to connect by
-setting allow_unknown` to ```true```. This is not recommended and the default is ```false```.
+setting `serviceproviders.allow_unknown` to `true`. This is not recommended and the default is `false`.
 
 ```yml
 serviceproviders:
