@@ -1,5 +1,6 @@
 package eduproxy.saml;
 
+import org.opensaml.saml2.core.NameID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
@@ -42,7 +43,9 @@ public class DefaultSAMLUserDetailsService implements SAMLUserDetailsService {
         attribute.getName(),
         attribute.getAttributeValues().stream().map(SAMLBuilder::getStringValueFromXMLObject)
           .filter(Optional::isPresent).map(Optional::get).collect(toList()))).collect(toList());
-    principal.elevate(credential.getNameID().getValue(), attributes);
+
+    NameID nameID = credential.getNameID();
+    principal.elevate(nameID.getValue(), nameID.getFormat(), attributes);
     return principal;
   }
 

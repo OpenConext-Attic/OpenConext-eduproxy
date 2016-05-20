@@ -73,12 +73,8 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
 
     //we can now call user to introspect the Principal
     response = restTemplate.exchange("http://localhost:" + port + "/user", HttpMethod.GET, new HttpEntity<>(httpHeaders), String.class);
-    String html = response.getBody();
 
-    assertEquals(200, response.getStatusCode().value());
-    assertTrue(html.contains("nameID"));
-    assertTrue(html.contains("urn:collab:person:example.com:admin"));
-    assertTrue(html.contains("j.doe@example.com"));
+    assertUserResponse(response);
   }
 
   @Test
@@ -110,12 +106,14 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
     HttpEntity<MultiValueMap<String, String>> httpEntity = new HttpEntity<>(map, httpHeaders);
     response = restTemplate.exchange("http://localhost:" + port + "/saml/SSO", HttpMethod.POST, httpEntity, String.class);
 
-    assertEquals(200, response.getStatusCode().value());
+    assertEquals(302, response.getStatusCode().value());
 
-    String html = response.getBody();
-    assertTrue(html.contains("nameID"));
-    assertTrue(html.contains("urn:collab:person:example.com:admin"));
-    assertTrue(html.contains("j.doe@example.com"));
+    String location = response.getHeaders().getFirst("Location");
+    assertEquals("http://localhost:"+port+"/test", location);
+
+    response = restTemplate.exchange(location, HttpMethod.GET, new HttpEntity<>(httpHeaders), String.class);
+
+    assertUserResponse(response);
   }
 
   @Test
@@ -133,6 +131,16 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
   public void testNoSAML() throws Exception {
     ResponseEntity<String> response = restTemplate.getForEntity("http://localhost:" + port + "/bogus", String.class);
     assertEquals(403, response.getStatusCode().value());
+  }
+
+  private void assertUserResponse(ResponseEntity<String> response) {
+    assertEquals(200, response.getStatusCode().value());
+
+    String html = response.getBody();
+
+    assertTrue(html.contains("urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified"));
+    assertTrue(html.contains("urn:collab:person:example.com:admin"));
+    assertTrue(html.contains("j.doe@example.com"));
   }
 
   private String getIdPSAMLResponse(String saml) throws IOException {

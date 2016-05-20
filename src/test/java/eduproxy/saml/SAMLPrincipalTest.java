@@ -14,7 +14,7 @@ public class SAMLPrincipalTest {
   public void testGetName() throws Exception {
     assertNull(subject.getName());
 
-    subject.elevate("nameID", Collections.emptyList());
+    subject.elevate("nameID", "nameIDType", Collections.emptyList());
     assertEquals("nameID", subject.getName());
   }
 
@@ -25,17 +25,12 @@ public class SAMLPrincipalTest {
 
   @Test
   public void testEquals() throws Exception {
-    subject.elevate("nameID", Collections.emptyList());
+    subject.elevate("nameID", "nameIDType", Collections.emptyList());
 
     SAMLPrincipal principal = new SAMLPrincipal("X", "X", "X", "X");
-    principal.elevate("nameID", Collections.emptyList());
+    principal.elevate("nameID", "nameIDType", Collections.emptyList());
 
     assertTrue(subject.equals(principal));
     assertEquals(principal.hashCode(), subject.hashCode());
-  }
-
-  @Test
-  public void testHashCode() throws Exception {
-
   }
 }

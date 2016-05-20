@@ -18,6 +18,7 @@ public class SAMLPrincipal implements Principal {
   private final List<SAMLAttribute> attributes = new ArrayList<>();
 
   private String nameID;
+  private String nameIDType;
 
   public SAMLPrincipal(String serviceProviderEntityID, String requestID, String assertionConsumerServiceURL, String relayState) {
     this.serviceProviderEntityID = serviceProviderEntityID;
@@ -26,8 +27,9 @@ public class SAMLPrincipal implements Principal {
     this.relayState = relayState;
   }
 
-  public void elevate(String nameID, List<SAMLAttribute> attributes) {
+  public void elevate(String nameID, String nameIDType, List<SAMLAttribute> attributes) {
     this.nameID = nameID;
+    this.nameIDType = nameIDType;
     this.attributes.addAll(attributes);
   }
 
@@ -53,6 +55,10 @@ public class SAMLPrincipal implements Principal {
 
   public String getNameID() {
     return nameID;
+  }
+
+  public String getNameIDType() {
+    return nameIDType;
   }
 
   @Override

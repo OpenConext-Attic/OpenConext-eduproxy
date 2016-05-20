@@ -15,13 +15,9 @@ import org.springframework.util.StringUtils;
 
 import javax.xml.namespace.QName;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 
@@ -41,10 +37,10 @@ public class SAMLBuilder {
     return issuer;
   }
 
-  public static Subject buildSubject(String subjectNameId, String recipient, String inResponseTo) {
+  public static Subject buildSubject(String subjectNameId, String subjectNameIdType, String recipient, String inResponseTo) {
     NameID nameID = buildSAMLObject(NameID.class, NameID.DEFAULT_ELEMENT_NAME);
     nameID.setValue(subjectNameId);
-    nameID.setFormat(NameIDType.PERSISTENT);
+    nameID.setFormat(subjectNameIdType);
 
     Subject subject = buildSAMLObject(Subject.class, Subject.DEFAULT_ELEMENT_NAME);
     subject.setNameID(nameID);
@@ -92,7 +88,7 @@ public class SAMLBuilder {
     Assertion assertion = buildSAMLObject(Assertion.class, Assertion.DEFAULT_ELEMENT_NAME);
 
     if (status.getStatusCode().getValue().equals(StatusCode.SUCCESS_URI)) {
-      Subject subject = buildSubject(principal.getNameID(), principal.getAssertionConsumerServiceURL(), principal.getNameID());
+      Subject subject = buildSubject(principal.getNameID(), principal.getNameIDType(),principal.getAssertionConsumerServiceURL(), principal.getRequestID());
       assertion.setSubject(subject);
     }
 

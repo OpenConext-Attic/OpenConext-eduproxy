@@ -4,8 +4,10 @@
 [![codecov.io](https://codecov.io/gh/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/gh/OpenConext/OpenConext-eduproxy)
 
 EDUProxy is a SAML Proxy acting as a Identity Provider for all eduGain Service Providers and
-as a ServiceProvider for the OpenConext Identity Provider. The Proxy behaviour can be configured in order
-for the EDUProxy to be used as a generic IdP-SP SAML proxy with hooks for authnResponse 'enrichment'.
+as a ServiceProvider in the OpenConext SAML Federation
+
+The Proxy behaviour can be configured in order for the EDUProxy to be used as a generic IdP-SP SAML proxy with hooks
+for authnResponse 'enrichment'.
 
 ## [Getting started](#getting-started)
 
@@ -24,15 +26,51 @@ mvn spring-boot:run
 
 When developing, it's convenient to just execute the applications main-method, which is in [Application](src/main/java/eduproxy/Application.java).
 
+## [SAML metadata](#saml-metadata)
+
+The eduProxy metadata is generated and accessible on [http://localhost:8080/sp/metadata](http://localhost:8080/sp/metadata)
+and [http://localhost:8080/idp/metadata](http://localhost:8080/idp/metadata). The metadata is cached and refreshed every 24 hours. This
+can be configured:
+
+```yml
+proxy:
+  # duration of metadata cache (1 day)
+  validity_duration_metadata_ms: 86400000
+```
+
+The Service Providers allowed to connect to the eduProxy are provided in a Metadata feed configured in ```application.yml```:
+
+```yml
+serviceproviders:
+  feed: http://mds.edugain.org/
+```
+By default - but easily changed / overridden - all Service Providers in the SAML metadata feed
+are allowed to connect. See [ServiceProviderFeedParser](src/main/java/eduproxy/saml/ServiceProviderFeedParser.java).
+
+The feed can also be a file url when developing locally:
+
+```yml
+serviceproviders:
+  feed: http://mds.edugain.org/
+```
+
+## [Testing](#testing)
+There are integration tests that spin off a running application and these can also be run inside the IDE.
+
+There is a test SP endpoint that requires authentication against the configured IdP and displays all SAML attributes received:
+
+[http://localhost:8080/test](http://localhost:8080/test)
+
+The production flow and the Attribute-Mapper role is depicted in [this image](src/main/resources/static/images/eduproxy.001.jpg).
+
 ## [Private signing keys and public certificates](#signing-keys)
 
 The SAML Spring Security library needs the following keys:
 
 * private DSA key / public certificate pair for the eduProxy IdP / SP
 * the public certificate of the real IdentityProvider
-* the certificates of the Service Providers
 
-The public certificate can be copied from the metadata. The private / public key for the EDUProxy SP / IDP can be generated:
+The private / public key for the EDUProxy SP / IDP can be generated:
  
 ```bash
 openssl req -subj '/O=Organization, CN=EduProxy/' -newkey rsa:2048 -new -x509 -days 3652 -nodes -out eduproxy.crt -keyout eduproxy.pem
@@ -67,32 +105,8 @@ proxy.private_key=${output from cleaning the der file}
 proxy.certificate=${output from cleaning the crt file}
 ```
 
-Add the Identity Provider certificate to the application.properties file:
+The public certificate can be copied from the IdP metadata. Add the Identity Provider certificate to the application.properties file:
 
 ```bash
 idp.certificate=${copy & paste from the metadata}
 ```
-
-The Service Providers allowed to connect can be provided in a Metadata feed configured in ```application.yml```:
-
-```yml
-serviceproviders:
-  feed: http://mds.edugain.org/
-```
-By default - but easily changed / overridden - all Service Providers in the SAML metadata feed
-are allowed to connect. See [ServiceProviderFeedParser](src/main/java/eduproxy/saml/ServiceProviderFeedParser.java).
-
-## [SAML metadata](#saml-metadata)
-
-The eduProxy metadata is generated and accessible on [http://localhost:8080/sp/metadata](http://localhost:8080/sp/metadata)
-and [http://localhost:8080/idp/metadata](http://localhost:8080/idp/metadata). The metadata is cached and refreshed every 24 hours. This
-can be configured:
-
-```yml
-proxy:
-  # duration of metadata cache (1 day)
-  validity_duration_metadata_ms: 86400000
-```
-
-
-

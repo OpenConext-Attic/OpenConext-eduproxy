@@ -1,13 +1,14 @@
 package eduproxy;
 
-import eduproxy.saml.SAMLBuilder;
 import org.joda.time.DateTime;
 import org.opensaml.common.binding.BasicSAMLMessageContext;
 import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.binding.encoding.HTTPRedirectDeflateEncoder;
 import org.opensaml.saml2.core.AuthnRequest;
+import org.opensaml.saml2.core.NameID;
 import org.opensaml.saml2.core.Subject;
 import org.opensaml.saml2.metadata.Endpoint;
+import org.opensaml.saml2.metadata.NameIDFormat;
 import org.opensaml.saml2.metadata.SingleSignOnService;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.ws.transport.http.HttpServletResponseAdapter;
@@ -15,9 +16,7 @@ import org.opensaml.xml.io.MarshallingException;
 import org.opensaml.xml.security.CriteriaSet;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.credential.Credential;
-import org.opensaml.xml.security.credential.UsageType;
 import org.opensaml.xml.security.criteria.EntityIDCriteria;
-import org.opensaml.xml.security.criteria.UsageCriteria;
 import org.opensaml.xml.signature.SignatureException;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.saml.key.KeyManager;
@@ -51,7 +50,7 @@ public class SAMLRequestUtils {
     authnRequest.setIssuer(buildIssuer(entityId));
 
     if (userId.isPresent()) {
-      Subject subject = buildSubject(userId.get(), "http://localhost:8080", UUID.randomUUID().toString());
+      Subject subject = buildSubject(userId.get(), NameID.UNSPECIFIED, "http://localhost:8080", UUID.randomUUID().toString());
       authnRequest.setSubject(subject);
     }
 

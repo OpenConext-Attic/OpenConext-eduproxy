@@ -21,6 +21,10 @@ public class SAMLAttribute {
     return values;
   }
 
+  public String getValue() {
+    return String.join(", ", values);
+  }
+
   @Override
   public String toString() {
     return "SAMLAttribute{" +
