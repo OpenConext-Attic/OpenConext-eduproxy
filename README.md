@@ -3,10 +3,10 @@
 [![Build Status](https://travis-ci.org/OpenConext/OpenConext-eduproxy.svg)](https://travis-ci.org/OpenConext/OpenConext-eduproxy)
 [![codecov.io](https://codecov.io/gh/OpenConext/OpenConext-eduproxy/coverage.svg)](https://codecov.io/gh/OpenConext/OpenConext-eduproxy)
 
-EDUProxy is a SAML Proxy acting as a Identity Provider for all eduGain Service Providers and
-as a ServiceProvider in the OpenConext SAML Federation
+eduProxy is a SAML Proxy acting as a Identity Provider for all eduGain Service Providers and
+acting as a ServiceProvider in the OpenConext SAML Federation
 
-The Proxy behaviour can be configured in order for the EDUProxy to be used as a generic IdP-SP SAML proxy with hooks
+The Proxy behaviour can be configured in order for the eduProxy to be used as a generic IdP-SP SAML proxy with hooks
 for authnResponse 'enrichment'.
 
 ## [Getting started](#getting-started)
@@ -51,7 +51,24 @@ The feed can also be a file url when developing locally:
 
 ```yml
 serviceproviders:
-  feed: http://mds.edugain.org/
+  feed: classpath:saml/edugain.xml
+```
+
+When developing locally or deploying in a test environment eduProxy can be configured to allow any SP to connect by
+setting allow_unknown` to `true`. This is not recommended and the default is `false`.
+
+```yml
+serviceproviders:
+  allow_unknown: true
+
+
+The metadata of the IdentityProvider (currently we don't allow more then one and assume that a possible WAYF is the
+responsibility of the actual IdentityProvider proxied by eduProxy) must be provided in the ```application.yml```
+
+```yml
+idp:
+# metadata_url: https://engine.surfconext.nl/authentication/idp/metadata
+  metadata_url: classpath:saml/eb.idp.metadata.xml
 ```
 
 ## [Testing](#testing)
@@ -63,15 +80,10 @@ There is a test SP endpoint that requires authentication against the configured 
 
 The production flow and the Attribute-Mapper role is depicted in [this image](src/main/resources/static/images/eduproxy.001.jpg).
 
-## [Private signing keys and public certificates](#signing-keys)
+## [Private signing key and public certificate](#signing-keys)
 
-The SAML Spring Security library needs the following keys:
+The SAML Spring Security library needs a private DSA key / public certificate pair for the eduProxy IdP / SP which can be generated.
 
-* private DSA key / public certificate pair for the eduProxy IdP / SP
-* the public certificate of the real IdentityProvider
-
-The private / public key for the EDUProxy SP / IDP can be generated:
- 
 ```bash
 openssl req -subj '/O=Organization, CN=EduProxy/' -newkey rsa:2048 -new -x509 -days 3652 -nodes -out eduproxy.crt -keyout eduproxy.pem
 ```
@@ -105,8 +117,7 @@ proxy.private_key=${output from cleaning the der file}
 proxy.certificate=${output from cleaning the crt file}
 ```
 
-The public certificate can be copied from the IdP metadata. Add the Identity Provider certificate to the application.properties file:
-
-```bash
-idp.certificate=${copy & paste from the metadata}
-```
+## [Deployment](#deployment)
+The eduProxy application has documented [properties](src/main/resources/application.yml) packaged inside the jar. When deploying
+to a non-local environment ensure you have application.yml properties outside of the packaged jar to override
+the eduProxy configuration.

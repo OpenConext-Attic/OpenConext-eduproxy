@@ -2,6 +2,8 @@ package eduproxy.saml;
 
 import org.opensaml.common.binding.SAMLMessageContext;
 import org.opensaml.saml2.core.AuthnRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,11 +24,14 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
 
   private final SAMLMessageHandler samlMessageHandler;
   private final Map<String, ServiceProvider> serviceProviders;
+  private final boolean serviceProvidersAllowUnknown;
 
   public IdentityProviderAuthnFilter(SAMLMessageHandler samlMessageHandler,
-                                     Map<String, ServiceProvider> serviceProviders) {
+                                     Map<String, ServiceProvider> serviceProviders,
+                                     boolean serviceProvidersAllowUnknown) {
     this.samlMessageHandler = samlMessageHandler;
     this.serviceProviders = serviceProviders;
+    this.serviceProvidersAllowUnknown = serviceProvidersAllowUnknown;
   }
 
   @Override
@@ -36,7 +41,7 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
       return;
     }
 
-    if (!isSAML(request) ) {
+    if (!isSAML(request)) {
       if (!request.getRequestURI().contains("test")) {
         throw new IllegalArgumentException("No SAMLRequest or SAMLResponse query path parameter, invalid SAML 2 HTTP Redirect message");
       }
@@ -75,6 +80,10 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
   private void validateAssertionConsumerService(SAMLPrincipal principal) {
     ServiceProvider serviceProvider = serviceProviders.get(principal.getServiceProviderEntityID());
     if (serviceProvider == null) {
+      if (serviceProvidersAllowUnknown) {
+        logger.warn("Allowing SP " + principal.getServiceProviderEntityID() + " because configured to allow unknown SPs");
+        return;
+      }
       throw new SAMLAuthenticationException("ServiceProvider " + principal.getServiceProviderEntityID() + " is unknown",
         null, principal);
     }
@@ -84,7 +93,6 @@ public class IdentityProviderAuthnFilter extends OncePerRequestFilter implements
         null, principal);
     }
   }
-
 
   private void sendAuthResponse(HttpServletResponse response) {
     SAMLPrincipal principal = (SAMLPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

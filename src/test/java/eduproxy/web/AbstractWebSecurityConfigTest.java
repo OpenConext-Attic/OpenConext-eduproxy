@@ -72,5 +72,18 @@ public abstract class AbstractWebSecurityConfigTest extends AbstractIntegrationT
     return IOUtils.toString(new InflaterInputStream(new ByteArrayInputStream(decodedBytes), new Inflater(true)));
   }
 
+  protected void assertInvalidResponse(String entity, String acs, String expectedErrorMessage) throws SecurityException, MessageEncodingException, SignatureException, MarshallingException, UnknownHostException {
+    String url = samlRequestUtils.redirectUrl(entity, "http://localhost:" + port + "/", acs, Optional.empty(), true);
+    doAssertInvalidResponse(expectedErrorMessage, url);
+  }
+
+  protected void doAssertInvalidResponse(String expectedErrorMessage, String url) {
+    ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+
+    String saml = getSAMLResponseForError(response);
+
+    assertTrue(saml.contains(expectedErrorMessage));
+    assertFalse(saml.contains("Subject"));
+  }
 
 }

@@ -80,32 +80,29 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Value("${idp.metadata_url}")
   private String identityProviderMetadataUrl;
 
-  @Value("${idp.entity_id}")
-  private String identityProviderEntityId;
-
-  @Value("${idp.certificate}")
-  private String surfConextPublicCertificate;
-
   @Value("${proxy.base_url}")
-  private String serviceProviderBaseUrl;
+  private String eduProxyBaseUrl;
 
   @Value("${proxy.entity_id}")
-  private String serviceProviderEntityId;
+  private String eduProxyEntityId;
 
   @Value("${proxy.private_key}")
-  private String serviceProviderPrivateKey;
+  private String eduProxyPrivateKey;
 
   @Value("${proxy.certificate}")
-  private String serviceProviderCertificate;
+  private String eduProxyCertificate;
 
   @Value("${proxy.passphrase}")
-  private String serviceProviderPassphrase;
+  private String eduProxyPassphrase;
 
   @Value("${proxy.acs_location}")
-  private String serviceProviderACSLocation;
+  private String eduProxyACSLocation;
 
   @Value("${serviceproviders.feed}")
   private String serviceProvidersFeedUrl;
+
+  @Value("${serviceproviders.allow_unknown}")
+  private boolean serviceProvidersAllowUnknown;
 
   private DefaultResourceLoader defaultResourceLoader = new DefaultResourceLoader();
 
@@ -202,7 +199,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Bean
   public IdentityProviderAuthnFilter identityProviderAuthnFilter() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException {
-    return new IdentityProviderAuthnFilter(samlMessageHandler(), serviceProviders);
+    return new IdentityProviderAuthnFilter(samlMessageHandler(), serviceProviders, serviceProvidersAllowUnknown);
   }
 
   private DefaultSecurityFilterChain chain(String pattern, Filter entryPoint) {
@@ -224,7 +221,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     resourceMetadataProvider.setParserPool(parserPool());
     ExtendedMetadataDelegate extendedMetadataDelegate = new ExtendedMetadataDelegate(resourceMetadataProvider, extendedMetadata());
     extendedMetadataDelegate.setMetadataTrustCheck(true);
-    extendedMetadataDelegate.setMetadataRequireSignature(false);
+    extendedMetadataDelegate.setMetadataRequireSignature(true);
     return extendedMetadataDelegate;
   }
 
@@ -294,14 +291,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
   @Bean
   public SAMLContextProviderImpl contextProvider() throws URISyntaxException {
-    return new ProxiedSAMLContextProviderLB(new URI(serviceProviderBaseUrl));
+    return new ProxiedSAMLContextProviderLB(new URI(eduProxyBaseUrl));
   }
 
   @Bean
   public MetadataGenerator metadataGenerator() throws NoSuchAlgorithmException, CertificateException, InvalidKeySpecException, KeyStoreException, IOException, XMLStreamException {
     MetadataGenerator metadataGenerator = new MetadataGenerator();
-    metadataGenerator.setEntityId(serviceProviderEntityId);
-    metadataGenerator.setEntityBaseURL(serviceProviderBaseUrl);
+    metadataGenerator.setEntityId(eduProxyEntityId);
+    metadataGenerator.setEntityBaseURL(eduProxyBaseUrl);
     metadataGenerator.setExtendedMetadata(extendedMetadata());
     metadataGenerator.setIncludeDiscoveryExtension(false);
     metadataGenerator.setKeyManager(keyManager());
@@ -314,23 +311,22 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   @Bean
   public KeyManager keyManager() throws InvalidKeySpecException, CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, XMLStreamException {
     KeyStoreLocator keyStoreLocator = new KeyStoreLocator();
-    KeyStore keyStore = keyStoreLocator.createKeyStore(serviceProviderPassphrase);
+    KeyStore keyStore = keyStoreLocator.createKeyStore(eduProxyPassphrase);
 
-    keyStoreLocator.addPrivateKey(keyStore, serviceProviderEntityId, serviceProviderPrivateKey, serviceProviderCertificate, serviceProviderPassphrase);
-    keyStoreLocator.addCertificate(keyStore, identityProviderEntityId, serviceProviderCertificate);
+    keyStoreLocator.addPrivateKey(keyStore, eduProxyEntityId, eduProxyPrivateKey, eduProxyCertificate, eduProxyPassphrase);
 
     this.serviceProviders = getServiceProviders();
     serviceProviders.entrySet().forEach(sp -> {
       try {
         ServiceProvider serviceProvider = sp.getValue();
-        if (serviceProvider.isSigningCertificateSigned() && !serviceProvider.getEntityId().equals(serviceProviderEntityId)) {
+        if (serviceProvider.isSigningCertificateSigned() && !serviceProvider.getEntityId().equals(eduProxyEntityId)) {
           keyStoreLocator.addCertificate(keyStore, sp.getKey(), serviceProvider.getSigningCertificate());
         }
       } catch (CertificateException | KeyStoreException e) {
         throw new RuntimeException(e);
       }
     });
-    return new JKSKeyManager(keyStore, Collections.singletonMap(serviceProviderEntityId, serviceProviderPassphrase), serviceProviderEntityId);
+    return new JKSKeyManager(keyStore, Collections.singletonMap(eduProxyEntityId, eduProxyPassphrase), eduProxyEntityId);
   }
 
   private Map<String, ServiceProvider> getServiceProviders() throws IOException, XMLStreamException {
@@ -339,7 +335,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       this.serviceProviders = new ServiceProviderFeedParser(defaultResourceLoader.getResource(serviceProvidersFeedUrl)).parse();
     }
     if (environment.acceptsProfiles("dev")) {
-      this.serviceProviders.put(serviceProviderEntityId, new ServiceProvider(serviceProviderEntityId, serviceProviderCertificate, singletonList(serviceProviderACSLocation)));
+      this.serviceProviders.put(eduProxyEntityId, new ServiceProvider(eduProxyEntityId, eduProxyCertificate, singletonList(eduProxyACSLocation)));
     }
     return this.serviceProviders;
   }
@@ -400,7 +396,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
       new HTTPRedirectDeflateDecoder(parserPool()),
       new HTTPPostSimpleSignEncoder(velocityEngine(), "/templates/saml2-post-simplesign-binding.vm", true),
       securityPolicyResolver(),
-      serviceProviderEntityId);
+      eduProxyEntityId);
   }
 
   private SecurityPolicyResolver securityPolicyResolver() {
