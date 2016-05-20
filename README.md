@@ -55,12 +55,12 @@ serviceproviders:
 ```
 
 When developing locally or deploying in a test environment eduProxy can be configured to allow any SP to connect by
-setting allow_unknown` to `true`. This is not recommended and the default is `false`.
+setting allow_unknown` to ```true```. This is not recommended and the default is ```false```.
 
 ```yml
 serviceproviders:
   allow_unknown: true
-
+```
 
 The metadata of the IdentityProvider (currently we don't allow more then one and assume that a possible WAYF is the
 responsibility of the actual IdentityProvider proxied by eduProxy) must be provided in the ```application.yml```
