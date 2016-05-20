@@ -78,7 +78,7 @@ There is a test SP endpoint that requires authentication against the configured 
 
 [http://localhost:8080/test](http://localhost:8080/test)
 
-The production flow and the Attribute-Mapper role is depicted in [this image](src/main/resources/static/images/eduproxy.001.jpg).
+The production flow and the Attribute-Mapper role is depicted in [this image](src/main/resources/static/images/eduproxy.001.jpeg).
 
 ## [Private signing key and public certificate](#signing-keys)
 
