@@ -110,11 +110,13 @@ cat eduproxy.der |ghead -n -1 |tail -n +2 | tr -d '\n'; echo
 cat eduproxy.crt |ghead -n -1 |tail -n +2 | tr -d '\n'; echo
 ```
 
-Add the eduproxy key pair to the application.properties file:
+Add the eduproxy key pair to the application.yml file:
 
-```bash
-proxy.private_key=${output from cleaning the der file}
-proxy.certificate=${output from cleaning the crt file}
+```yml
+# eduProxy
+proxy:
+  private_key: ${output from cleaning the der file}
+  certificate: ${output from cleaning the crt file}
 ```
 
 ## [Deployment](#deployment)

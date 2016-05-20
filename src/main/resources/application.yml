@@ -46,7 +46,7 @@ spring:
   velocity:
     check-template-location: False
 
-# You can skip all the key-value pairs below in the overriding application.properties on the classpath
+# You can skip all the key-value pairs below in the overriding application.yml on the classpath
 
 # 8 hours before we time-out
 session-timeout: 28800
