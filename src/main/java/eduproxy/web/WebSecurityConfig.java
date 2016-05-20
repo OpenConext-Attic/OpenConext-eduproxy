@@ -260,36 +260,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
   }
 
   @Bean
-  public static SAMLBootstrap sAMLBootstrap() {
-    return new SAMLBootstrap();
-  }
-
-  @Bean
-  public SAMLDefaultLogger samlLogger() {
-    return new SAMLDefaultLogger();
-  }
-
-  @Bean
-  public WebSSOProfileConsumer webSSOprofileConsumer() {
-    return new WebSSOProfileConsumerImpl();
-  }
-
-  @Bean
-  public WebSSOProfileConsumerHoKImpl hokWebSSOprofileConsumer() {
-    return new WebSSOProfileConsumerHoKImpl();
-  }
-
-  @Bean
-  public WebSSOProfile webSSOprofile() {
-    return new WebSSOProfileImpl();
-  }
-
-  @Bean
-  public WebSSOProfileECPImpl ecpprofile() {
-    return new WebSSOProfileECPImpl();
-  }
-
-  @Bean
   public SAMLContextProviderImpl contextProvider() throws URISyntaxException {
     return new ProxiedSAMLContextProviderLB(new URI(eduProxyBaseUrl));
   }
