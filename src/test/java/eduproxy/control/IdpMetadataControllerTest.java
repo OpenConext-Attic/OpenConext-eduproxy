@@ -32,9 +32,6 @@ public class IdpMetadataControllerTest extends AbstractIntegrationTest {
     assertTrue(xml.contains("<md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">"));
     assertTrue(xml.contains("entityID=\"https://eduproxy.localhost.surfconext.nl\""));
 
-    //force cache evict
-    //Thread.sleep(500);
-
     xml = restTemplate.getForEntity("http://localhost:" + port + "/idp/metadata", String.class).getBody();
     Matcher matcher = Pattern.compile("validUntil=\"(.*?)\"").matcher(xml);
 
