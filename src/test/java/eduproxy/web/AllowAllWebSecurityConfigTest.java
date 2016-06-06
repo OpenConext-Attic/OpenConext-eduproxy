@@ -42,7 +42,7 @@ public class AllowAllWebSecurityConfigTest extends AbstractWebSecurityConfigTest
     ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
     String saml = decodeSaml(response);
 
-    assertTrue(saml.contains("Destination=\"https://engine.test.surfconext.nl/authentication/idp/single-sign-on\""));
+    assertTrue(saml.contains("Destination=\"https://engine.test2.surfconext.nl/authentication/idp/single-sign-on\""));
   }
 
 }
