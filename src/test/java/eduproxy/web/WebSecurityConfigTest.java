@@ -49,7 +49,7 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
     String saml = decodeSaml(response);
 
     assertTrue(saml.contains("AssertionConsumerServiceURL=\"http://localhost:8080/saml/SSO\""));
-    assertTrue(saml.contains("Destination=\"https://engine.test.surfconext.nl/authentication/idp/single-sign-on\""));
+    assertTrue(saml.contains("Destination=\"https://engine.test2.surfconext.nl/authentication/idp/single-sign-on\""));
 
     String samlResponse = getIdPSAMLResponse(saml);
 
@@ -93,7 +93,7 @@ public class WebSecurityConfigTest extends AbstractWebSecurityConfigTest {
     String saml = decodeSaml(response);
 
     assertTrue(saml.contains("AssertionConsumerServiceURL=\"http://localhost:8080/saml/SSO\""));
-    assertTrue(saml.contains("Destination=\"https://engine.test.surfconext.nl/authentication/idp/single-sign-on\""));
+    assertTrue(saml.contains("Destination=\"https://engine.test2.surfconext.nl/authentication/idp/single-sign-on\""));
 
     String samlResponse = getIdPSAMLResponse(saml);
 

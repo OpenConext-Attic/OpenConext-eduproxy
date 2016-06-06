@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!--https://wiki.surfnet.nl/display/conextsupport/Terms+of+Service+%28EN%29-->
 <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:mdui="urn:oasis:names:tc:SAML:metadata:ui"
-                     validUntil="2016-05-04T13:20:18Z"
-                     entityID="https://engine.test.surfconext.nl/authentication/idp/metadata"
-                     ID="CORTO30559ed4a22d78543fdec062d6df66c3d3f7439f">
+                     validUntil="2016-06-07T07:20:28Z"
+                     entityID="https://engine.test2.surfconext.nl/authentication/idp/metadata"
+                     ID="CORTO598afec456a87e2439aba2b1737bb651169d19c3">
   <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
     <ds:SignedInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
       <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
       <ds:SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
-      <ds:Reference URI="#CORTO30559ed4a22d78543fdec062d6df66c3d3f7439f">
+      <ds:Reference URI="#CORTO598afec456a87e2439aba2b1737bb651169d19c3">
         <ds:Transforms>
           <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
           <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
         </ds:Transforms>
         <ds:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
-        <ds:DigestValue>xF0nVp+EMVobYIWOxMJUAtxY6ZQ=</ds:DigestValue>
+        <ds:DigestValue>WOzW0llQJdNeUHG2knItJZ5aqOo=</ds:DigestValue>
       </ds:Reference>
     </ds:SignedInfo>
     <ds:SignatureValue>
-      KrsTFo066k8kTQ+rox6OL8fML4KZmVkEcnrvGwjZuxNpKK4Gw4XSQGJaPa3UPZRGnKXkjOq5VMRgStAKPMdDK08FXsuwNOio7Ka9kHF9iQKpjkYLUttjIDED40RiaTgYV9juDIKfIu6fs+NgX5nldlFDE8hWqv2T45NNjH6BpTM=
+      gG0TToGCiVw/e8AZBGgJymyMfXNl8tviQUWvPBD0Qs5EfQAbx6Tcs4H/l6KphrR3k5U2n+/W8FObKvUIz8T0f9fien6c4G6bNUFIENzmO+uE32149cDVcH93i5hMF8r8S0mYQiuszk7OnRlAP1jjcBJQ2rxHfexcP+RM1wkbsYI=
     </ds:SignatureValue>
     <ds:KeyInfo>
       <ds:X509Data>
@@ -35,7 +35,7 @@
         <mdui:DisplayName xml:lang="en">OpenConext Engine</mdui:DisplayName>
         <mdui:Description xml:lang="nl">OpenConext SSO Proxy</mdui:Description>
         <mdui:Description xml:lang="en">OpenConext SSO Proxy</mdui:Description>
-        <mdui:Logo height="96" width="96">https://static.test.surfconext.nl/media/conext_logo.png</mdui:Logo>
+        <mdui:Logo height="96" width="96">https://static.test2.surfconext.nl/media/conext_logo.png</mdui:Logo>
         <mdui:Keywords xml:lang="en">openconext engine engineblock proxy sso saml2</mdui:Keywords>
         <mdui:Keywords xml:lang="nl">openconext engine engineblock proxy sso saml2</mdui:Keywords>
       </mdui:UIInfo>
@@ -53,7 +53,7 @@
     <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
     <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>
     <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
-                            Location="https://engine.test.surfconext.nl/authentication/idp/single-sign-on"/>
+                            Location="https://engine.test2.surfconext.nl/authentication/idp/single-sign-on"/>
   </md:IDPSSODescriptor>
   <md:ContactPerson contactType="technical">
     <md:GivenName>Support</md:GivenName>

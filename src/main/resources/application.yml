@@ -13,8 +13,8 @@ server:
 
 # Identity Provider. The metadata_url can (and should) be a https resource
 idp:
-#  metadata_url: https://engine.surfconext.nl/authentication/idp/metadata
   metadata_url: classpath:saml/eb.idp.metadata.xml
+#  metadata_url: https://engine.test2.surfconext.nl/authentication/idp/metadata
 
 # SAML MetaData feed with all allowed SPs. Can (and should) be a https resource
 serviceproviders:
