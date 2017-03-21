@@ -20,7 +20,7 @@ idp:
 serviceproviders:
 #  feed: http://mds.edugain.org/
   feed: classpath:saml/edugain.xml
-  allow_unknown: false
+  allow_unknown: true
 
 # eduProxy
 proxy:
